@@ -43,10 +43,10 @@ class HomeHeaderCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('नमस्ते ✨', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+          Text('Namaste', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
           SizedBox(height: 8),
           Text(
-            'Sathi is your tiny homesick companion — a soft place for voice notes, memory photos, and weekly wellbeing pulses.',
+            'Sathi is your tiny homesick companion: a soft place for voice notes, memory photos, and weekly wellbeing pulses.',
             style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
           ),
         ],
@@ -77,6 +77,51 @@ class PulseCard extends StatelessWidget {
                 Text('Updated ${formatFriendlyDate(pulse!.createdAt)}', style: Theme.of(context).textTheme.bodySmall),
               ],
             ),
+    );
+  }
+}
+
+class WeeklyCheckinReminderCard extends StatelessWidget {
+  const WeeklyCheckinReminderCard({
+    super.key,
+    required this.isDue,
+    required this.onTap,
+    this.daysUntilDue,
+  });
+
+  final bool isDue;
+  final int? daysUntilDue;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final title = isDue ? 'Time for your weekly check-in' : 'Your next weekly check-in is coming up';
+    final subtitle = isDue
+        ? "Let's see how you're doing today."
+        : 'You are not due yet, but you can still check in early if you want a fresh snapshot.';
+    final footer = isDue
+        ? 'A quick seven-question pulse can help spot what feels lighter, what feels heavier, and what keeps repeating.'
+        : 'Due in about ${daysUntilDue ?? 0} day${(daysUntilDue ?? 0) == 1 ? '' : 's'}.';
+
+    return SectionCard(
+      color: AppTheme.mint,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Weekly check-in', style: TextStyle(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 10),
+          Text(title, style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 8),
+          Text(subtitle),
+          const SizedBox(height: 10),
+          Text(footer),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: onTap,
+            child: Text(isDue ? 'Start weekly check-in' : 'Open check-in'),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -160,9 +205,7 @@ class PhotoPreviewCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(28),
                   image: image,
                 ),
-                child: image == null
-                    ? const Center(child: Icon(Icons.photo_outlined, size: 42))
-                    : null,
+                child: image == null ? const Center(child: Icon(Icons.photo_outlined, size: 42)) : null,
               ),
             ),
             Positioned(
@@ -172,7 +215,7 @@ class PhotoPreviewCard extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.88),
+                  color: Colors.white.withValues(alpha: 0.88),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(photo?.caption ?? 'Add a photo that feels a little like home.'),
@@ -233,7 +276,7 @@ class WidgetPreviewCard extends StatelessWidget {
           const SizedBox(height: 14),
           Text(
             summary,
-            maxLines: 2,
+            maxLines: 3,
             overflow: TextOverflow.ellipsis,
           ),
         ],
@@ -266,7 +309,7 @@ class JournalResultCard extends StatelessWidget {
           const SizedBox(height: 14),
           Text(entry.summary),
           const SizedBox(height: 10),
-          Text('Nepali transcript', style: Theme.of(context).textTheme.titleMedium),
+          Text('Journal transcript', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 4),
           Text(entry.transcript),
           const SizedBox(height: 10),

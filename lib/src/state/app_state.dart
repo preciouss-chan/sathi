@@ -4,13 +4,16 @@ import '../models/photo_entry.dart';
 import '../models/share_card_data.dart';
 import '../models/voice_journal_entry.dart';
 import '../models/wellbeing_pulse.dart';
+import '../models/weekly_analysis.dart';
 import '../models/weekly_checkin_entry.dart';
 import '../services/demo_repository.dart';
+import '../services/weekly_checkin_analyzer.dart';
 
 class AppState extends ChangeNotifier {
   AppState({required this.repository});
 
   final DemoRepository repository;
+  final WeeklyCheckinAnalyzer _weeklyAnalyzer = WeeklyCheckinAnalyzer();
   bool isBusy = false;
   ShareCardData? pendingShareCard;
 
@@ -18,9 +21,37 @@ class AppState extends ChangeNotifier {
   List<VoiceJournalEntry> get journals => repository.journals;
   List<WeeklyCheckinEntry> get checkins => repository.checkins;
 
+  WeeklyCheckinEntry? get latestCheckin => checkins.isNotEmpty ? checkins.first : null;
+  WeeklyCheckinEntry? get previousCheckin => checkins.length > 1 ? checkins[1] : null;
+
+  WeeklyAnalysis? get latestWeeklyAnalysis {
+    final current = latestCheckin;
+    if (current == null) return null;
+
+    return _weeklyAnalyzer.analyze(
+      current,
+      previous: previousCheckin,
+      history: checkins.skip(1).toList(),
+    );
+  }
+
+  bool get isWeeklyCheckinDue {
+    final current = latestCheckin;
+    if (current == null) return true;
+    return DateTime.now().difference(current.createdAt) >= const Duration(days: 7);
+  }
+
+  int? get daysUntilCheckinDue {
+    final current = latestCheckin;
+    if (current == null) return null;
+    final remaining = const Duration(days: 7) - DateTime.now().difference(current.createdAt);
+    if (remaining.isNegative) return 0;
+    return remaining.inDays + (remaining.inHours % 24 > 0 ? 1 : 0);
+  }
+
   WellbeingPulse? get latestPulse {
     final latestJournal = journals.isNotEmpty ? journals.first : null;
-    final latestCheckin = checkins.isNotEmpty ? checkins.first : null;
+    final latestCheckin = this.latestCheckin;
 
     if (latestJournal == null && latestCheckin == null) return null;
 
@@ -34,17 +65,23 @@ class AppState extends ChangeNotifier {
       );
     }
 
-    final checkin = latestCheckin!;
+    final analysis = latestWeeklyAnalysis!;
     return WellbeingPulse(
-      headline: 'Weekly trend: ${checkin.trend}',
-      mood: checkin.trend,
-      energy: 'Check-in',
-      summary: _trendMessage(checkin.trend),
-      createdAt: checkin.createdAt,
+      headline: 'Weekly check-in: ${analysis.tierLabel}',
+      mood: analysis.tierLabel,
+      energy: '7-day trend',
+      summary: analysis.supportMessage,
+      createdAt: latestCheckin!.createdAt,
     );
   }
 
-  String get widgetSummary => latestPulse?.summary ?? 'A gentle little space to check in with yourself.';
+  String get widgetSummary {
+    final analysis = latestWeeklyAnalysis;
+    if (analysis != null) {
+      return analysis.observation;
+    }
+    return latestPulse?.summary ?? 'A gentle little space to check in with yourself.';
+  }
 
   Future<void> addPhoto(PhotoEntry entry) async {
     isBusy = true;
@@ -75,17 +112,6 @@ class AppState extends ChangeNotifier {
   void setPendingShareCard(ShareCardData card) {
     pendingShareCard = card;
     notifyListeners();
-  }
-
-  static String _trendMessage(String trend) {
-    switch (trend) {
-      case 'improving':
-        return 'Your recent check-ins suggest things are feeling a bit lighter.';
-      case 'needs attention':
-        return 'This week may need a little extra care, rest, and connection.';
-      default:
-        return 'Your recent rhythm looks fairly steady right now.';
-    }
   }
 }
 

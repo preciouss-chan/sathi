@@ -101,7 +101,7 @@ class _RecordVoiceScreenState extends State<RecordVoiceScreen> {
               children: [
                 CircleAvatar(
                   radius: 42,
-                  backgroundColor: _isRecording ? Colors.red.shade100 : Theme.of(context).colorScheme.primary.withOpacity(0.15),
+                  backgroundColor: _isRecording ? Colors.red.shade100 : Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
                   child: Icon(_isRecording ? Icons.stop_rounded : Icons.mic_rounded, size: 32),
                 ),
                 const SizedBox(height: 12),

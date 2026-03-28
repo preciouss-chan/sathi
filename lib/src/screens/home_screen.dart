@@ -29,6 +29,12 @@ class HomeScreen extends StatelessWidget {
         children: [
           const HomeHeaderCard(),
           const SizedBox(height: 16),
+          WeeklyCheckinReminderCard(
+            isDue: state.isWeeklyCheckinDue,
+            daysUntilDue: state.daysUntilCheckinDue,
+            onTap: () => Navigator.pushNamed(context, WeeklyCheckinScreen.routeName),
+          ),
+          const SizedBox(height: 16),
           PulseCard(pulse: state.latestPulse),
           const SizedBox(height: 16),
           PhotoPreviewCard(photo: state.photos.isNotEmpty ? state.photos.first : null),
@@ -57,7 +63,7 @@ class HomeScreen extends StatelessWidget {
           QuickActionButton(
             icon: Icons.favorite_outline,
             label: 'Weekly check-in',
-            subtitle: 'A quick pulse on loneliness, connection, stress, and sleep.',
+            subtitle: 'Seven questions on homesickness, connection, pressure, and support.',
             color: AppTheme.mint,
             onTap: () => Navigator.pushNamed(context, WeeklyCheckinScreen.routeName),
           ),
