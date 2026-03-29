@@ -1,37 +1,238 @@
 # Sathi
 
-Sathi is a polished Flutter MVP for Nepalese students abroad — a tiny homesick companion focused on voice journaling, photo memories, weekly check-ins, and gentle emotional summaries.
+Sathi is a Flutter app for Nepalese students abroad. It combines voice journals, photo memories, weekly check-ins, and a private circle feed in a lightweight, supportive experience.
 
-## What is included
+## Overview
 
-- Home
-- Record Voice
-- Upload Photo
-- Weekly Check-in
-- Insights / Trends
-- Share Summary
-- Warm in-app widget-style preview card
-- Mock/demo-safe fallbacks so the app still works without Firebase/OpenAI keys
+Sathi supports two development modes:
 
-## Current project status
+- **Demo mode** for local UI and feature work without Firebase
+- **Firebase mode** for anonymous auth, real sharing, and Storage-backed uploads
 
-This repository contains the full Flutter app source (`lib/`) and `pubspec.yaml`.
+The project is intentionally MVP-sized. Some wellbeing summary behavior is local placeholder logic, not a production AI backend.
 
-Because Flutter is not installed in this environment, native platform folders were not generated automatically. To finish local setup on your machine:
+## Features
+
+- Voice journal recording and transcript-based emotional summaries
+- Photo memory uploads with captions
+- Weekly check-ins with trend summaries and insight charts
+- Private circle connections using Sathi codes
+- Shared updates feed for photos and voice journals
+- Manual sharing of summary cards
+
+## Prerequisites
+
+- Flutter SDK
+- Dart SDK, included with Flutter
+- Android Studio and Android SDK for Android development
+- Xcode for iOS and macOS development
+- Firebase CLI, only required for Firebase mode
+
+Verify your environment:
 
 ```bash
-flutter create .
+flutter doctor
+```
+
+Install dependencies:
+
+```bash
 flutter pub get
+```
+
+## Quickstart
+
+### Demo mode (recommended first run)
+
+Demo mode does not require Firebase.
+
+```bash
 flutter run
 ```
 
-If you want Android/iOS folders generated immediately, run:
+What works in demo mode:
+
+- navigation
+- photo upload flow
+- voice journal flow
+- weekly check-in flow
+- insights screen
+- mock sharing behavior
+
+Demo mode limitations:
+
+- data is stored in memory only
+- restarting the app clears demo history
+- multi-user sharing is not real in this mode
+
+If you only want to open the project and verify the app UI, use demo mode first.
+
+### Firebase mode
+
+Use Firebase mode when you need:
+
+- anonymous authentication
+- Firestore-backed user connections
+- shared feed updates between users
+- Firebase Storage uploads for photos and voice journals
+
+Run:
 
 ```bash
-flutter create --platforms=android,ios .
+flutter run --dart-define=USE_FIREBASE=true
 ```
 
-## Packages used
+Important:
+
+- the app falls back to demo mode if Firebase initialization fails in `lib/main.dart`
+- the app may still open even if Firebase is misconfigured
+- real sharing will not behave correctly until Firebase is enabled in the console and rules are deployed
+
+## Firebase setup
+
+This repository already includes the source-side Firebase files:
+
+- `lib/firebase_options.dart`
+- `android/app/google-services.json`
+- `ios/Runner/GoogleService-Info.plist`
+- `macos/Runner/GoogleService-Info.plist`
+- `firestore.rules`
+- `storage.rules`
+- `firebase.json`
+
+In practice, most setup issues come from the Firebase console rather than missing local files.
+
+### 1. Log in to Firebase CLI
+
+```bash
+firebase login
+```
+
+### 2. Select the Firebase project
+
+```bash
+firebase use sathi-cd772
+```
+
+If you are using a different Firebase project, replace the project ID above.
+
+### 3. Enable required Firebase products
+
+In Firebase Console, enable:
+
+- **Authentication** with **Anonymous** sign-in
+- **Cloud Firestore**
+- **Firebase Storage**
+
+### 4. Deploy rules
+
+```bash
+firebase deploy --only firestore,storage
+```
+
+This is required for:
+
+- shared feed reads and writes
+- voice journal uploads
+- photo uploads
+- deleting shared posts
+
+## Common Firebase gotchas
+
+### App opens, but sharing does not work
+
+Usually one of these is missing:
+
+- Anonymous Auth is not enabled
+- Firestore is not enabled
+- Storage is not enabled
+- Firestore and Storage rules were not deployed
+- the app was not started with `--dart-define=USE_FIREBASE=true`
+
+### App Check warnings appear in logs
+
+You may see warnings like:
+
+```text
+No AppCheckProvider installed
+using placeholder token instead
+```
+
+This project does not currently configure Firebase App Check. For local development, these warnings are usually non-blocking.
+
+### Voice journal uploads fail
+
+Redeploy Storage rules:
+
+```bash
+firebase deploy --only storage
+```
+
+### Shared post deletion fails
+
+Redeploy Firestore rules:
+
+```bash
+firebase deploy --only firestore
+```
+
+### Creator cannot see their own shared posts in Home
+
+This also depends on the latest Firestore rules being deployed.
+
+## Running on specific platforms
+
+### Android
+
+```bash
+flutter run -d android
+```
+
+### iOS
+
+```bash
+flutter run -d ios
+```
+
+### macOS
+
+```bash
+flutter run -d macos
+```
+
+### List available devices
+
+```bash
+flutter devices
+```
+
+## Permissions
+
+The app uses:
+
+- microphone access
+- photo library access
+- optional camera/media access depending on platform flow
+
+If permissions behave unexpectedly, verify the native project files.
+
+### iOS
+
+Check `ios/Runner/Info.plist` for:
+
+- `NSMicrophoneUsageDescription`
+- `NSPhotoLibraryUsageDescription`
+- `NSCameraUsageDescription`
+
+### Android
+
+Check `android/app/src/main/AndroidManifest.xml` for:
+
+- `android.permission.RECORD_AUDIO`
+- `android.permission.READ_MEDIA_IMAGES`
+- `android.permission.CAMERA`
+
+## Main packages used
 
 - `firebase_core`
 - `firebase_auth`
@@ -39,137 +240,89 @@ flutter create --platforms=android,ios .
 - `firebase_storage`
 - `image_picker`
 - `record`
-- `path_provider`
+- `audioplayers`
 - `share_plus`
 - `intl`
 
-## Demo-safe behavior
+## Contributor workflow
 
-By default, the app runs in local mock mode.
-
-- No Firebase setup required for first demo
-- No OpenAI API key required for first demo
-- Voice analysis and summaries are generated locally with placeholder logic
-- Photos and check-ins are stored in memory for the running session
-
-## Enabling Firebase
-
-1. Add Firebase to your Flutter app.
-2. Generate `firebase_options.dart` with FlutterFire CLI if desired.
-3. Pass the flag below when running:
+### UI or local feature work
 
 ```bash
-flutter run --dart-define=USE_FIREBASE=true
+flutter pub get
+flutter run
 ```
 
-4. Replace the placeholder initialization comment in `lib/main.dart` with your generated Firebase options if you use them.
-
-For the connectivity MVP, anonymous auth is the cheapest starting point. When `USE_FIREBASE=true`, the app attempts Firebase anonymous sign-in at launch and creates a lightweight Firestore user profile with a simple `connectCode` like `SAT-ABCD`.
-
-### Suggested Firestore collections for connectivity
-
-- `users/{uid}`
-- `users/{uid}/incoming_requests/{fromUid}`
-- `users/{uid}/connections/{otherUid}`
-- `users/{uid}/shared_updates/{updateId}`
-
-This is enough for manual connection requests, accepted circles, and explicit in-app sharing.
-
-### Firestore rules setup
-
-This repo now includes:
-
-- `firebase.json`
-- `firestore.rules`
-
-Deploy the rules after connecting this repo to your Firebase project:
+### Firebase-connected work
 
 ```bash
 firebase login
-firebase use <your-project-id>
-firebase deploy --only firestore:rules
+firebase use sathi-cd772
+firebase deploy --only firestore,storage
+flutter run --dart-define=USE_FIREBASE=true
 ```
 
-These rules support the current anonymous-auth connectivity MVP:
+### Notes for contributors
 
-- authenticated users can read basic user profiles
-- users can only edit their own profile
-- users can send incoming requests into another user's request inbox
-- users can only read their own request inbox, own connections, and updates shared to them
-- private in-app sharing is only allowed between two users who already have mutual connection docs
+- demo mode is the safest way to verify the app starts cleanly
+- Firebase mode should be tested whenever you touch sharing, connections, uploads, or deletion flows
+- there is no meaningful automated test coverage in the repo yet, so manual verification is still important
 
-For local development, make sure Firebase Auth (anonymous) and Firestore are both enabled in the Firebase console before running:
+## Architecture overview
+
+- `lib/main.dart` — app bootstrap and optional Firebase initialization
+- `lib/src/app/` — app shell and routes
+- `lib/src/screens/` — feature screens
+- `lib/src/state/app_state.dart` — central state management
+- `lib/src/services/` — demo, Firebase, auth, recording, and analysis services
+- `lib/src/models/` — data models
+- `lib/src/widgets/` — reusable UI components
+- `firestore.rules` and `storage.rules` — Firebase security rules
+- `firebase.json` — Firebase project configuration
+
+## Project notes
+
+- voice and wellbeing analysis currently uses local placeholder logic
+- `USE_FIREBASE=true` enables backend connectivity, not a real AI backend
+- OpenAI is not required for local development
+- weekly insights are generated from local app logic, not an external model
+
+## Troubleshooting
+
+### Clean and rebuild
+
+```bash
+flutter clean
+flutter pub get
+flutter run
+```
+
+### If Android build caches get corrupted
+
+```bash
+flutter clean
+rm -rf build .dart_tool android/.gradle
+flutter pub get
+flutter run
+```
+
+### If Firebase mode is flaky
+
+Confirm the app works in demo mode first:
+
+```bash
+flutter run
+```
+
+Then switch back to:
 
 ```bash
 flutter run --dart-define=USE_FIREBASE=true
 ```
 
-## Enabling OpenAI
+## Future hardening
 
-The MVP includes a stubbed service in `lib/src/services/openai_wellbeing_service.dart`.
-
-To connect a real backend later:
-
-1. Add a secure backend or Cloud Function.
-2. Do **not** ship your OpenAI key directly in a production mobile app.
-3. Optionally test locally with:
-
-```bash
-flutter run --dart-define=USE_OPENAI=true --dart-define=OPENAI_API_KEY=your_key_here
-```
-
-At the moment, these flags are documented for future integration and do not enable a real API call yet. The current MVP still uses local placeholder analysis so the demo remains stable.
-
-Recommended production flow:
-
-- upload audio to Firebase Storage
-- send the storage URL or transcript to a Cloud Function
-- call OpenAI from the server
-- store structured JSON in Firestore
-
-## Product language guardrails
-
-This MVP intentionally avoids diagnosis language.
-
-Use:
-
-- wellbeing pulse
-- mood trend
-- emotional summary
-
-Avoid:
-
-- diagnosis
-- score
-- mental health score
-
-## Native permissions you still need to add
-
-After running `flutter create .`, add permission descriptions for the media features.
-
-### iOS: `ios/Runner/Info.plist`
-
-```xml
-<key>NSMicrophoneUsageDescription</key>
-<string>Sathi uses the microphone for voice journals.</string>
-<key>NSPhotoLibraryUsageDescription</key>
-<string>Sathi lets you choose comforting photos to save in your memory feed.</string>
-<key>NSCameraUsageDescription</key>
-<string>Sathi can use the camera if you later enable direct photo capture.</string>
-```
-
-### Android: `android/app/src/main/AndroidManifest.xml`
-
-```xml
-<uses-permission android:name="android.permission.RECORD_AUDIO" />
-<uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-<uses-permission android:name="android.permission.CAMERA" />
-```
-
-## Suggested next steps after the hackathon
-
-- Replace mock repositories with Firestore-backed repositories
-- Add Firebase anonymous auth or email auth
-- Add Whisper/GPT-based Nepali transcription and summary generation via Cloud Functions
-- Add real homescreen widgets for Android/iOS
-- Add push reminders for weekly check-ins
+- add Firebase App Check
+- move AI calls to a backend or Cloud Function
+- persist more non-Firebase local state if demo mode should survive restarts
+- add automated tests for sharing and deletion flows
