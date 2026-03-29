@@ -1,0 +1,46 @@
+from deep_translator import GoogleTranslator
+from transformers import pipeline
+
+def analyze_nepali_emotions(nepali_text):
+    # 1. Translate Nepali to English
+    print("Translating text...")
+    translator = GoogleTranslator(source='ne', target='en')
+    english_text = translator.translate(nepali_text)
+    print(f"Translated Text: {english_text}\n")
+
+    # 2. Load the Emotion Detection Model
+    # top_k=None ensures we get scores for all emotions, not just the highest one
+    print("Analyzing emotions...")
+    emotion_classifier = pipeline("text-classification", 
+                                  model="j-hartmann/emotion-english-distilroberta-base", 
+                                  top_k=None)
+    
+    raw_emotions = emotion_classifier(english_text)
+
+    # 3. Format and Scale the Scores (1 to 10)
+    print("--- Emotion Scores (1-10) ---")
+    
+    # The pipeline returns a list of lists, we grab the first element
+    emotions_list = raw_emotions[0] 
+    
+    # Sort the list by score descending to see the strongest emotions first
+    emotions_list = sorted(emotions_list, key=lambda x: x['score'], reverse=True)
+
+    results = {}
+    for emotion in emotions_list:
+        label = emotion['label'].capitalize()
+        # Multiply by 10 to scale, round to 1 decimal place
+        score_1_to_10 = round(emotion['score'] * 10, 1)
+        results[label] = score_1_to_10
+        
+        # Only print emotions that register a meaningful score (optional)
+        if score_1_to_10 > 0.5:
+            print(f"{label}: {score_1_to_10}/10")
+
+    return results
+
+# Example Usage:
+# "I am very happy today, but I am also a little scared about the exam."
+sample_nepali_text = "म आज धेरै खुसी छु, तर मलाई परीक्षाको बारेमा अलि डर पनि लागिरहेको छ।"
+
+analyze_nepali_emotions(sample_nepali_text)
