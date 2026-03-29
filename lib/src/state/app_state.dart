@@ -10,16 +10,23 @@ import '../models/voice_journal_entry.dart';
 import '../models/wellbeing_pulse.dart';
 import '../models/weekly_analysis.dart';
 import '../models/weekly_checkin_entry.dart';
+import '../models/weekly_recommendation.dart';
 import '../services/connectivity_service.dart';
 import '../services/demo_repository.dart';
+import '../services/weekly_recommendation_service.dart';
 import '../services/weekly_checkin_analyzer.dart';
 
 class AppState extends ChangeNotifier {
-  AppState({required this.repository, required this.connectivityService});
+  AppState({
+    required this.repository,
+    required this.connectivityService,
+    this.weeklyRecommendationService = const WeeklyRecommendationService(),
+  });
 
   final DemoRepository repository;
   final WeeklyCheckinAnalyzer _weeklyAnalyzer = WeeklyCheckinAnalyzer();
   final ConnectivityService connectivityService;
+  final WeeklyRecommendationService weeklyRecommendationService;
   bool isBusy = false;
   bool isConnectivityBusy = false;
   ShareCardData? pendingShareCard;
@@ -27,6 +34,7 @@ class AppState extends ChangeNotifier {
   List<ConnectionRequest> incomingRequests = [];
   List<ConnectedPerson> connections = [];
   List<SharedUpdate> sharedUpdates = [];
+  WeeklyRecommendationResult? latestRecommendation;
 
   List<PhotoEntry> get photos => repository.photos;
   List<VoiceJournalEntry> get journals => repository.journals;
@@ -172,13 +180,35 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  Future<void> addCheckin(WeeklyCheckinEntry entry) async {
+  Future<WeeklyRecommendationResult?> addCheckin(WeeklyCheckinEntry entry) async {
     isBusy = true;
     notifyListeners();
-    await repository.saveCheckin(entry);
-    pendingShareCard = entry.shareCard;
-    isBusy = false;
-    notifyListeners();
+    try {
+      await repository.saveCheckin(entry);
+      pendingShareCard = entry.shareCard;
+
+      try {
+        latestRecommendation = await weeklyRecommendationService.generateRecommendation(
+          entry: entry,
+          previous: previousCheckin,
+          studentName: currentUser?.displayName,
+        );
+        pendingShareCard = ShareCardData(
+          title: 'Weekly recommendation',
+          body: latestRecommendation!.recommendation.acknowledgement,
+          footer: latestRecommendation!.recommendation.actions
+              .map((action) => action.title)
+              .join(' • '),
+        );
+      } catch (_) {
+        latestRecommendation = null;
+      }
+
+      return latestRecommendation;
+    } finally {
+      isBusy = false;
+      notifyListeners();
+    }
   }
 
   void setPendingShareCard(ShareCardData card) {
@@ -252,17 +282,6 @@ class AppState extends ChangeNotifier {
     } finally {
       isConnectivityBusy = false;
       notifyListeners();
-    }
-  }
-
-  static String _trendMessage(String trend) {
-    switch (trend) {
-      case 'improving':
-        return 'Your recent check-ins suggest things are feeling a bit lighter.';
-      case 'needs attention':
-        return 'This week may need a little extra care, rest, and connection.';
-      default:
-        return 'Your recent rhythm looks fairly steady right now.';
     }
   }
 }

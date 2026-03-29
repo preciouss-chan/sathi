@@ -79,6 +79,12 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (state.latestRecommendation != null) ...[
+            WeeklyRecommendationCard(
+              result: state.latestRecommendation!,
+            ),
+            const SizedBox(height: 16),
+          ],
           Text(
             'Your circle feed',
             style: Theme.of(context).textTheme.headlineMedium,

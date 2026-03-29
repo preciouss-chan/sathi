@@ -26,10 +26,18 @@ class PrimaryShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scrollView = SingleChildScrollView(
-      physics: onRefresh != null ? const AlwaysScrollableScrollPhysics() : null,
-      padding: const EdgeInsets.all(20),
-      child: child,
+    final scrollView = ScrollConfiguration(
+      behavior: ScrollConfiguration.of(context).copyWith(
+        overscroll: false,
+        scrollbars: false,
+      ),
+      child: SingleChildScrollView(
+        physics: onRefresh != null
+            ? const AlwaysScrollableScrollPhysics(parent: ClampingScrollPhysics())
+            : const ClampingScrollPhysics(),
+        padding: const EdgeInsets.all(20),
+        child: child,
+      ),
     );
 
     return Scaffold(

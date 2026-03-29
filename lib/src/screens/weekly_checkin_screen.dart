@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/share_card_data.dart';
 import '../models/weekly_analysis.dart';
 import '../models/weekly_checkin_entry.dart';
+import '../models/weekly_recommendation.dart';
 import '../services/weekly_checkin_analyzer.dart';
 import '../state/app_state.dart';
 import '../widgets/app_cards.dart';
@@ -48,11 +49,25 @@ class _WeeklyCheckinScreenState extends State<WeeklyCheckinScreen> {
       ),
     );
 
-    await state.addCheckin(entry);
+    final recommendation = await state.addCheckin(entry);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Weekly check-in saved. You can review the charts and comparisons on Insights.')),
-    );
+
+    if (recommendation != null) {
+      await showDialog<void>(
+        context: context,
+        builder: (_) => _RecommendationDialog(result: recommendation),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Weekly check-in saved. The local recommendation server was not available, so no AI suggestion was shown.',
+          ),
+        ),
+      );
+    }
+
+    if (!mounted) return;
     Navigator.pop(context);
   }
 
@@ -233,6 +248,72 @@ class _WeeklyCheckinScreenState extends State<WeeklyCheckinScreen> {
       draft,
       previous: state.latestCheckin,
       history: state.checkins,
+    );
+  }
+}
+
+class _RecommendationDialog extends StatelessWidget {
+  const _RecommendationDialog({required this.result});
+
+  final WeeklyRecommendationResult result;
+
+  @override
+  Widget build(BuildContext context) {
+    final recommendation = result.recommendation;
+
+    return AlertDialog(
+      title: const Text('This week\'s recommendation'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (result.triage.priorityFlag != null) ...[
+              Text(
+                result.triage.priorityFlag!,
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const SizedBox(height: 8),
+            ],
+            Text(recommendation.acknowledgement),
+            const SizedBox(height: 16),
+            for (final action in recommendation.actions) ...[
+              Text(action.title, style: const TextStyle(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 4),
+              Text(action.text),
+              if (action.resourceName != null && action.resourceName!.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  action.resourceName!,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+              const SizedBox(height: 12),
+            ],
+            if (recommendation.safetyNote != null && recommendation.safetyNote!.isNotEmpty) ...[
+              Text(
+                recommendation.safetyNote!,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+            if (result.warning != null && result.warning!.isNotEmpty)
+              Text(
+                result.warning!,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Close'),
+        ),
+      ],
     );
   }
 }

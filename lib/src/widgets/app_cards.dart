@@ -12,6 +12,7 @@ import '../models/share_card_data.dart';
 import '../models/shared_update.dart';
 import '../models/voice_journal_entry.dart';
 import '../models/wellbeing_pulse.dart';
+import '../models/weekly_recommendation.dart';
 
 class SectionCard extends StatelessWidget {
   const SectionCard({
@@ -303,6 +304,81 @@ class WidgetPreviewCard extends StatelessWidget {
             maxLines: 3,
             overflow: TextOverflow.ellipsis,
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class WeeklyRecommendationCard extends StatelessWidget {
+  const WeeklyRecommendationCard({
+    super.key,
+    required this.result,
+    this.title = 'Latest AI recommendation',
+  });
+
+  final WeeklyRecommendationResult result;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final recommendation = result.recommendation;
+
+    return SectionCard(
+      color: AppTheme.peach.withValues(alpha: 0.65),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+          if (result.triage.priorityFlag != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              result.triage.priorityFlag!,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ],
+          const SizedBox(height: 10),
+          Text(recommendation.acknowledgement),
+          const SizedBox(height: 12),
+          ...recommendation.actions.map(
+            (action) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    action.title,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(action.text),
+                  if (action.resourceName != null && action.resourceName!.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      action.resourceName!,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          if (recommendation.safetyNote != null &&
+              recommendation.safetyNote!.isNotEmpty) ...[
+            Text(
+              recommendation.safetyNote!,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.error,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
+          if (result.warning != null && result.warning!.isNotEmpty)
+            Text(
+              result.warning!,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
         ],
       ),
     );

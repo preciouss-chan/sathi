@@ -33,6 +33,13 @@ class InsightsScreen extends StatelessWidget {
                   analysis: analysis,
                   lastUpdated: state.latestCheckin!.createdAt,
                 ),
+                if (state.latestRecommendation != null) ...[
+                  const SizedBox(height: 16),
+                  WeeklyRecommendationCard(
+                    result: state.latestRecommendation!,
+                    title: 'Latest recommendation',
+                  ),
+                ],
                 const SizedBox(height: 16),
                 WeeklyScoreBarChart(points: analysis.themePoints),
                 const SizedBox(height: 16),
