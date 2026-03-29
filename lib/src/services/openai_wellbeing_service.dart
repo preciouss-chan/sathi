@@ -26,7 +26,7 @@ class OpenAiWellbeingService {
     final summary = lower.contains('family') || lower.contains('परिवार')
         ? 'Family connection sounds meaningful right now, even if the week felt heavy.'
         : 'You are carrying a mix of longing and resilience, with signs of steadiness.';
-    final suggestion = 'Try one grounding step today: a short walk, a familiar song, or a quick message home.';
+    const suggestion = 'Try one grounding step today: a short walk, a familiar song, or a quick message home.';
 
     return VoiceJournalEntry(
       id: DateTime.now().millisecondsSinceEpoch.toString(),

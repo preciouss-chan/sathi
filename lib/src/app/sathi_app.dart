@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/theme/app_theme.dart';
+import '../screens/connections_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/insights_screen.dart';
 import '../screens/record_voice_screen.dart';
@@ -24,6 +25,7 @@ class SathiApp extends StatelessWidget {
         theme: AppTheme.theme,
         routes: {
           '/': (_) => const HomeScreen(),
+          ConnectionsScreen.routeName: (_) => const ConnectionsScreen(),
           RecordVoiceScreen.routeName: (_) => const RecordVoiceScreen(),
           UploadPhotoScreen.routeName: (_) => const UploadPhotoScreen(),
           WeeklyCheckinScreen.routeName: (_) => const WeeklyCheckinScreen(),

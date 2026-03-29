@@ -61,7 +61,7 @@ class AppTheme {
           height: 1.35,
         ),
         bodyMedium: TextStyle(
-          color: ink.withOpacity(0.78),
+          color: ink.withValues(alpha: 0.78),
           height: 1.35,
         ),
       ),
