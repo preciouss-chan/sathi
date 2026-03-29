@@ -99,7 +99,7 @@ curl -X POST "http://localhost:8000/analyze-voice" -F "audio=@your_audio.m4a"
 
 ### POST /analyze-voice
 
-Analyzes voice input and returns transcription, emotion, and mental health score.
+Analyzes voice input and returns a Flutter-ready voice journal payload.
 
 **Request:**
 - Method: `POST`
@@ -111,7 +111,16 @@ Analyzes voice input and returns transcription, emotion, and mental health score
 {
   "transcription": "I've been feeling really stressed lately with work...",
   "emotion": "anxious",
-  "mental_health_score": 5
+  "mental_health_score": 5,
+  "detected_language": "en",
+  "mood": "Anxious but aware",
+  "energy": "Heavy",
+  "summary": "Your reflection suggests noticeable anxiety and some emotional strain right now.",
+  "suggestion": "Take one small grounding step today: water, rest, a short walk, or a message to someone safe.",
+  "safety": "gentle-check-in",
+  "share_title": "A friendly update",
+  "share_body": "Today's reflection carries anxiety and some strain, but there are still signs of resilience.",
+  "share_footer": "Only share this if it feels right for you."
 }
 ```
 
@@ -151,7 +160,8 @@ void main() async {
   
   print('Transcription: ${result['transcription']}');
   print('Emotion: ${result['emotion']}');
-  print('Mental Health Score: ${result['mental_health_score']}/10');
+  print('Mood: ${result['mood']}');
+  print('Summary: ${result['summary']}');
 }
 ```
 

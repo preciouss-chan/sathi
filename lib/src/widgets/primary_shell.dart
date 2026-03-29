@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../screens/connections_screen.dart';
+import '../screens/create_post_screen.dart';
 import '../screens/insights_screen.dart';
 import '../screens/record_voice_screen.dart';
 import '../screens/upload_photo_screen.dart';
@@ -112,16 +113,23 @@ Future<void> _showComposeSheet(BuildContext context) {
               ),
               const SizedBox(height: 12),
               _ComposeActionTile(
+                icon: Icons.collections_bookmark_outlined,
+                title: 'Post',
+                subtitle: 'Share a photo, a voice message, or both together.',
+                onTap: () =>
+                    _openComposeRoute(context, CreatePostScreen.routeName),
+              ),
+              _ComposeActionTile(
                 icon: Icons.mic_rounded,
-                title: 'Voice journal',
-                subtitle: 'Record and share how today feels.',
+                title: 'Voice journal only',
+                subtitle: 'Open the legacy voice-only flow.',
                 onTap: () =>
                     _openComposeRoute(context, RecordVoiceScreen.routeName),
               ),
               _ComposeActionTile(
                 icon: Icons.photo_library_outlined,
-                title: 'Photo memory',
-                subtitle: 'Share a photo from your day.',
+                title: 'Photo only',
+                subtitle: 'Open the legacy photo-only flow.',
                 onTap: () =>
                     _openComposeRoute(context, UploadPhotoScreen.routeName),
               ),

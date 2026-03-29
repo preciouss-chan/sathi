@@ -8,5 +8,9 @@ service firebase.storage {
     match /shared_voice_journals/{userId}/{allPaths=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
+
+    match /shared_posts/{userId}/{allPaths=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
   }
 }

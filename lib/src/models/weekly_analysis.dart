@@ -37,6 +37,9 @@ class WeeklyAnalysis {
     required this.entry,
     required this.tier,
     required this.totalScore,
+    required this.checkinScore,
+    required this.voiceSignalScore,
+    required this.recentVoiceJournalCount,
     required this.deltaFromPreviousWeek,
     required this.hasCriticalDelta,
     required this.hasRedFlagOverride,
@@ -53,6 +56,9 @@ class WeeklyAnalysis {
   final WeeklyCheckinEntry entry;
   final WeeklyRiskTier tier;
   final double totalScore;
+  final double checkinScore;
+  final double voiceSignalScore;
+  final int recentVoiceJournalCount;
   final double? deltaFromPreviousWeek;
   final bool hasCriticalDelta;
   final bool hasRedFlagOverride;
@@ -65,7 +71,10 @@ class WeeklyAnalysis {
   final String recommendedAction;
   final List<WeeklyThemePoint> dominantThemes;
 
-  bool get needsPromptCheckIn => tier == WeeklyRiskTier.acuteDistress || hasCriticalDelta || hasRedFlagOverride;
+  bool get needsPromptCheckIn =>
+      tier == WeeklyRiskTier.acuteDistress ||
+      hasCriticalDelta ||
+      hasRedFlagOverride;
 
   String get tierLabel {
     switch (tier) {
@@ -78,5 +87,8 @@ class WeeklyAnalysis {
     }
   }
 
-  String get scoreLabel => '${totalScore.toStringAsFixed(0)} / 35';
+  String get scoreLabel {
+    final maxScore = recentVoiceJournalCount > 0 ? 40 : 35;
+    return '${totalScore.toStringAsFixed(0)} / $maxScore';
+  }
 }
