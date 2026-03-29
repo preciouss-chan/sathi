@@ -1,82 +1,96 @@
 # Sathi
 
-Sathi is a Flutter app for Nepalese students abroad. It combines voice journals, photo memories, weekly check-ins, and a private circle feed in a lightweight, supportive experience.
+Sathi is a Flutter app built for Nepalese students abroad. It combines voice reflection, photo sharing, weekly wellbeing check-ins, a private social feed, and an Android home-screen widget into one supportive experience.
 
-## Overview
+## Project overview
 
-Sathi supports two development modes:
+Sathi is designed around three core ideas:
 
-- **Demo mode** for local UI and feature work without Firebase
-- **Firebase mode** for anonymous auth, real sharing, and Storage-backed uploads
+- help users reflect through **voice journals** and **weekly check-ins**
+- help trusted friends and family understand how someone is doing through a **private feed**
+- surface that wellbeing snapshot in a **phone widget** for quick awareness
 
-The project is intentionally MVP-sized. Some wellbeing summary behavior is local placeholder logic, not a production AI backend.
+The project currently supports:
 
-## Features
+- Flutter mobile app
+- optional Firebase-backed sharing and connections
+- Python backend for transcription + mood analysis
+- Android home-screen widget support
 
-- Voice journal recording and transcript-based emotional summaries
-- Photo memory uploads with captions
-- Weekly check-ins with trend summaries and insight charts
-- Private circle connections using Sathi codes
-- Shared updates feed for photos and voice journals
-- Manual sharing of summary cards
+## Main features
 
-## Prerequisites
+- **Combined posts**: users can share a photo, a voice message, or both in one post
+- **Voice journals**: record audio, transcribe it, and generate supportive feedback
+- **Weekly check-ins**: structured mental-health check-ins with trend analysis
+- **Insights tab**: combines weekly check-in data and recent voice signals into a wellbeing score
+- **Private circle feed**: trusted connections can see photos, voice posts, and weekly wellbeing updates
+- **Android widget**: shows a quick wellbeing snapshot using photo + keywords + suggestion
 
-- Flutter SDK
-- Dart SDK, included with Flutter
-- Android Studio and Android SDK for Android development
-- Xcode for iOS and macOS development
-- Firebase CLI, only required for Firebase mode
+## Team members and roles
 
-Verify your environment:
+## The Team behind Sathi
 
-```bash
-flutter doctor
-```
+- **🧑‍💻 Precious Nyaupane** — Team Lead & Flutter Engineering
+- **🧑‍💻 Shavya Shrestha** — UX & UI Design
+- **🧑‍💻 Laxman Puri** — AI Integration (Gemini)
+- **🧑‍💻 Aarjan Khatiwada** — Backend & Data
 
-Install dependencies:
+## Tech stack
 
-```bash
-flutter pub get
-```
+### Frontend
+- Flutter
+- Dart
 
-## Quickstart
+### Backend / services
+- Firebase Auth
+- Cloud Firestore
+- Firebase Storage
+- Python transcription backend
+- Whisper
+- Gemini API
 
-### Demo mode (recommended first run)
+### Key Flutter packages
+- `firebase_core`
+- `firebase_auth`
+- `cloud_firestore`
+- `firebase_storage`
+- `image_picker`
+- `record`
+- `audioplayers`
+- `share_plus`
+- `http`
+- `home_widget`
+- `path_provider`
+- `intl`
 
-Demo mode does not require Firebase.
+## Project modes
+
+Sathi currently supports two app modes.
+
+### 1. Demo mode
+
+Use this when you only want to explore the UI locally.
 
 ```bash
 flutter run
 ```
 
-What works in demo mode:
-
-- navigation
-- photo upload flow
-- voice journal flow
-- weekly check-in flow
-- insights screen
-- mock sharing behavior
-
 Demo mode limitations:
 
-- data is stored in memory only
-- restarting the app clears demo history
-- multi-user sharing is not real in this mode
+- uses local in-memory data only
+- app restarts clear local history
+- real device-to-device connections do not work
+- feed data may use demo fallback behavior
 
-If you only want to open the project and verify the app UI, use demo mode first.
+### 2. Firebase mode
 
-### Firebase mode
+Use this when you want real:
 
-Use Firebase mode when you need:
-
-- anonymous authentication
-- Firestore-backed user connections
-- shared feed updates between users
-- Firebase Storage uploads for photos and voice journals
-
-Run:
+- anonymous auth
+- user connections
+- feed sharing
+- Storage uploads
+- deletion across shared feeds
 
 ```bash
 flutter run --dart-define=USE_FIREBASE=true
@@ -84,13 +98,33 @@ flutter run --dart-define=USE_FIREBASE=true
 
 Important:
 
-- the app falls back to demo mode if Firebase initialization fails in `lib/main.dart`
-- the app may still open even if Firebase is misconfigured
-- real sharing will not behave correctly until Firebase is enabled in the console and rules are deployed
+- if Firebase initialization fails, the app currently falls back to demo mode
+- the Home screen shows a demo-mode warning when that happens
+
+## Prerequisites
+
+- Flutter SDK
+- Dart SDK (bundled with Flutter)
+- Android Studio / Android SDK for Android development
+- Xcode for iOS and macOS development
+- Firebase CLI for Firebase-backed mode
+- Python 3 for the transcription backend
+
+Check your Flutter environment:
+
+```bash
+flutter doctor
+```
+
+Install Flutter dependencies:
+
+```bash
+flutter pub get
+```
 
 ## Firebase setup
 
-This repository already includes the source-side Firebase files:
+This repository already contains the Firebase-side source files:
 
 - `lib/firebase_options.dart`
 - `android/app/google-services.json`
@@ -100,31 +134,24 @@ This repository already includes the source-side Firebase files:
 - `storage.rules`
 - `firebase.json`
 
-In practice, most setup issues come from the Firebase console rather than missing local files.
+You still need to configure Firebase in the console.
 
-### 1. Log in to Firebase CLI
+### Required console setup
 
-```bash
-firebase login
-```
-
-### 2. Select the Firebase project
-
-```bash
-firebase use sathi-cd772
-```
-
-If you are using a different Firebase project, replace the project ID above.
-
-### 3. Enable required Firebase products
-
-In Firebase Console, enable:
+Enable these Firebase services:
 
 - **Authentication** with **Anonymous** sign-in
 - **Cloud Firestore**
 - **Firebase Storage**
 
-### 4. Deploy rules
+### Firebase CLI setup
+
+```bash
+firebase login
+firebase use sathi-cd772
+```
+
+### Deploy rules
 
 ```bash
 firebase deploy --only firestore,storage
@@ -132,164 +159,174 @@ firebase deploy --only firestore,storage
 
 This is required for:
 
-- shared feed reads and writes
+- connections
+- feed sharing
 - voice journal uploads
-- photo uploads
-- deleting shared posts
+- combined post uploads
+- shared post deletion
+- weekly wellbeing update sharing
 
-## Common Firebase gotchas
+## Python transcription backend setup
 
-### App opens, but sharing does not work
+The backend lives in the `transcribe/` directory.
 
-Usually one of these is missing:
+### What it does
 
-- Anonymous Auth is not enabled
-- Firestore is not enabled
-- Storage is not enabled
-- Firestore and Storage rules were not deployed
-- the app was not started with `--dart-define=USE_FIREBASE=true`
+- accepts an uploaded voice file
+- transcribes it with Whisper
+- analyzes the text with Gemini
+- returns a Flutter-ready payload:
+  - transcription
+  - mood
+  - energy
+  - summary
+  - suggestion
+  - safety
+  - share card fields
 
-### App Check warnings appear in logs
+### Backend setup
 
-You may see warnings like:
+From the `transcribe/` directory:
 
-```text
-No AppCheckProvider installed
-using placeholder token instead
+```bash
+python main.py
 ```
 
-This project does not currently configure Firebase App Check. For local development, these warnings are usually non-blocking.
+Before running it, make sure you have:
 
-### Voice journal uploads fail
+- Whisper dependencies installed
+- `ffmpeg` available in PATH
+- a valid `GOOGLE_API_KEY` in the backend environment
 
-Redeploy Storage rules:
+### Notes
+
+- restart the backend after changing the Gemini prompt or API key
+- backend output is now the preferred source for voice feedback text
+
+## Recommended local run commands
+
+### Phone / backend / Firebase
+
+Use the helper script:
+
+```bash
+./scripts/run_flutter_with_backend.sh R5CX12XNA3B
+```
+
+### Emulator / backend / Firebase
+
+```bash
+./scripts/run_flutter_with_backend.sh emulator-5554
+```
+
+### Manual command
+
+```bash
+flutter run \
+  --dart-define=USE_FIREBASE=true \
+  --dart-define=USE_TRANSCRIBE_BACKEND=true \
+  --dart-define=TRANSCRIBE_API_BASE_URL=http://100.70.122.12:8000
+```
+
+## Android widget support
+
+Sathi currently includes an **Android home-screen widget**.
+
+### What it shows
+
+- username
+- photo snapshot
+- mood keywords
+- support suggestion
+
+### Notes
+
+- remove and re-add the widget after major widget layout changes
+- the widget uses a Flutter-side snapshot pipeline and native Android `AppWidgetProvider`
+- the widget is more reliable after the app has been opened once and data has synced
+
+### iPhone widget status
+
+iPhone widget support is **not fully implemented yet**.
+
+The Flutter-side widget snapshot pipeline exists, but a real WidgetKit extension target still needs to be added in Xcode.
+
+## Current architecture
+
+- `lib/main.dart` — app bootstrap and Firebase initialization
+- `lib/src/app/` — app shell and route setup
+- `lib/src/screens/` — feature screens
+- `lib/src/state/app_state.dart` — central app state and orchestration
+- `lib/src/services/` — Firebase, demo repository, recorder, backend integration, widget snapshot service
+- `lib/src/models/` — feed, widget, check-in, voice, and post models
+- `lib/src/widgets/` — reusable UI widgets
+- `transcribe/` — Python backend for transcription and Gemini-based analysis
+
+## Important behavior notes
+
+- combined post flow now exists in addition to some older separate photo/voice flows
+- Home feed can show:
+  - combined posts
+  - voice journals
+  - photos
+  - weekly wellbeing updates
+- Insights now include recent voice journal signal in the combined mental-health score
+- widget data is derived from shared feed content, not pulled directly from Firebase inside the widget
+
+## Common issues
+
+### App opens with the same identity on multiple devices
+
+This usually means the app is running in **demo mode**, not real Firebase mode.
+
+### Combined post upload fails with Storage unauthorized
+
+Deploy the latest Storage rules:
 
 ```bash
 firebase deploy --only storage
 ```
 
-### Shared post deletion fails
+### Shared deletion fails
 
-Redeploy Firestore rules:
+Deploy the latest Firestore rules:
 
 ```bash
 firebase deploy --only firestore
 ```
 
-### Creator cannot see their own shared posts in Home
+### Widget does not update correctly
 
-This also depends on the latest Firestore rules being deployed.
+- open the app once first
+- let feed data sync
+- remove and re-add the widget after layout changes
 
-## Running on specific platforms
+### Widget crashes on emulator
 
-### Android
-
-```bash
-flutter run -d android
-```
-
-### iOS
-
-```bash
-flutter run -d ios
-```
-
-### macOS
-
-```bash
-flutter run -d macos
-```
-
-### List available devices
-
-```bash
-flutter devices
-```
+This was previously caused by oversized widget bitmaps.
+The project now downsamples widget images, but if you still see issues, rebuild and re-add the widget.
 
 ## Permissions
 
 The app uses:
 
 - microphone access
-- photo library access
-- optional camera/media access depending on platform flow
+- photo/media access
+- optional camera access depending on flow
 
-If permissions behave unexpectedly, verify the native project files.
+If permissions behave unexpectedly, verify:
 
-### iOS
+- `android/app/src/main/AndroidManifest.xml`
+- `ios/Runner/Info.plist`
 
-Check `ios/Runner/Info.plist` for:
+## Contributor notes
 
-- `NSMicrophoneUsageDescription`
-- `NSPhotoLibraryUsageDescription`
-- `NSCameraUsageDescription`
+- use demo mode for fast UI iteration
+- use Firebase mode for any real sharing/connection/widget testing
+- use the Python backend when testing voice transcription and mood analysis
+- manual testing is still important because automated coverage is limited
 
-### Android
-
-Check `android/app/src/main/AndroidManifest.xml` for:
-
-- `android.permission.RECORD_AUDIO`
-- `android.permission.READ_MEDIA_IMAGES`
-- `android.permission.CAMERA`
-
-## Main packages used
-
-- `firebase_core`
-- `firebase_auth`
-- `cloud_firestore`
-- `firebase_storage`
-- `image_picker`
-- `record`
-- `audioplayers`
-- `share_plus`
-- `intl`
-
-## Contributor workflow
-
-### UI or local feature work
-
-```bash
-flutter pub get
-flutter run
-```
-
-### Firebase-connected work
-
-```bash
-firebase login
-firebase use sathi-cd772
-firebase deploy --only firestore,storage
-flutter run --dart-define=USE_FIREBASE=true
-```
-
-### Notes for contributors
-
-- demo mode is the safest way to verify the app starts cleanly
-- Firebase mode should be tested whenever you touch sharing, connections, uploads, or deletion flows
-- there is no meaningful automated test coverage in the repo yet, so manual verification is still important
-
-## Architecture overview
-
-- `lib/main.dart` — app bootstrap and optional Firebase initialization
-- `lib/src/app/` — app shell and routes
-- `lib/src/screens/` — feature screens
-- `lib/src/state/app_state.dart` — central state management
-- `lib/src/services/` — demo, Firebase, auth, recording, and analysis services
-- `lib/src/models/` — data models
-- `lib/src/widgets/` — reusable UI components
-- `firestore.rules` and `storage.rules` — Firebase security rules
-- `firebase.json` — Firebase project configuration
-
-## Project notes
-
-- voice and wellbeing analysis currently uses local placeholder logic
-- `USE_FIREBASE=true` enables backend connectivity, not a real AI backend
-- OpenAI is not required for local development
-- weekly insights are generated from local app logic, not an external model
-
-## Troubleshooting
-
-### Clean and rebuild
+## Troubleshooting quick reset
 
 ```bash
 flutter clean
@@ -297,7 +334,7 @@ flutter pub get
 flutter run
 ```
 
-### If Android build caches get corrupted
+For Android cache issues:
 
 ```bash
 flutter clean
@@ -305,24 +342,3 @@ rm -rf build .dart_tool android/.gradle
 flutter pub get
 flutter run
 ```
-
-### If Firebase mode is flaky
-
-Confirm the app works in demo mode first:
-
-```bash
-flutter run
-```
-
-Then switch back to:
-
-```bash
-flutter run --dart-define=USE_FIREBASE=true
-```
-
-## Future hardening
-
-- add Firebase App Check
-- move AI calls to a backend or Cloud Function
-- persist more non-Firebase local state if demo mode should survive restarts
-- add automated tests for sharing and deletion flows
