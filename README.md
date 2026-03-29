@@ -15,7 +15,7 @@ The project currently supports:
 - Flutter mobile app
 - optional Firebase-backed sharing and connections
 - Python backend for transcription + mood analysis
-- Android home-screen widget support
+- Mobile home-screen widget support
 
 ## Main features
 
@@ -24,7 +24,7 @@ The project currently supports:
 - **Weekly check-ins**: structured mental-health check-ins with trend analysis
 - **Insights tab**: combines weekly check-in data and recent voice signals into a wellbeing score
 - **Private circle feed**: trusted connections can see photos, voice posts, and weekly wellbeing updates
-- **Android widget**: shows a quick wellbeing snapshot using photo + keywords + suggestion
+- **Mobile widget**: shows a quick wellbeing snapshot using photo + keywords + suggestion
 
 ## Team members and roles
 
