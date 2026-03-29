@@ -1,0 +1,90 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function ownIncomingRequest(requesterUid) {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid)/incoming_requests/$(requesterUid));
+    }
+
+    function isConnected(userId, otherUid) {
+      return exists(/databases/$(database)/documents/users/$(userId)/connections/$(otherUid));
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn();
+
+      allow create, update: if isOwner(userId)
+        && request.resource.data.keys().hasOnly(['displayName', 'connectCode', 'createdAt'])
+        && request.resource.data.displayName is string
+        && request.resource.data.connectCode is string;
+
+      allow delete: if false;
+
+      match /incoming_requests/{requesterUid} {
+        allow read: if isOwner(userId);
+
+        allow create: if isSignedIn()
+          && requesterUid == request.auth.uid
+          && userId != request.auth.uid
+          && request.resource.data.keys().hasOnly(['fromUid', 'fromDisplayName', 'fromConnectCode', 'createdAt'])
+          && request.resource.data.fromUid == request.auth.uid
+          && request.resource.data.fromDisplayName is string
+          && request.resource.data.fromConnectCode is string;
+
+        allow delete: if isOwner(userId);
+        allow update: if false;
+      }
+
+      match /connections/{otherUserId} {
+        allow read: if isOwner(userId);
+
+        allow create: if isSignedIn()
+          && request.resource.data.keys().hasOnly(['displayName', 'connectCode', 'connectedAt'])
+          && request.resource.data.displayName is string
+          && request.resource.data.connectCode is string
+          && (
+            isOwner(userId)
+            || (request.auth.uid == otherUserId && ownIncomingRequest(userId))
+          );
+
+        allow update, delete: if isOwner(userId);
+      }
+
+      match /shared_updates/{updateId} {
+        allow read: if isOwner(userId)
+          || (isSignedIn() && resource.data.authorUid == request.auth.uid);
+
+        allow create: if isSignedIn()
+          && request.resource.data.keys().hasOnly(['authorUid', 'authorName', 'type', 'title', 'body', 'footer', 'createdAt', 'transcript', 'imageUrl', 'audioUrl', 'sourceEntryId'])
+          && request.resource.data.authorUid == request.auth.uid
+          && request.resource.data.authorName is string
+          && request.resource.data.type is string
+          && request.resource.data.title is string
+          && request.resource.data.body is string
+          && request.resource.data.footer is string
+          && (!('transcript' in request.resource.data) || request.resource.data.transcript is string)
+          && (!('imageUrl' in request.resource.data) || request.resource.data.imageUrl is string)
+          && (!('audioUrl' in request.resource.data) || request.resource.data.audioUrl is string)
+          && (!('sourceEntryId' in request.resource.data) || request.resource.data.sourceEntryId is string)
+          && (
+            userId == request.auth.uid
+            || (
+              isConnected(userId, request.auth.uid)
+              && isConnected(request.auth.uid, userId)
+            )
+          );
+
+        allow update: if isOwner(userId);
+        allow delete: if isOwner(userId)
+          || (isSignedIn() && resource.data.authorUid == request.auth.uid);
+      }
+    }
+  }
+}
