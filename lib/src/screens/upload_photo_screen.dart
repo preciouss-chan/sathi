@@ -28,13 +28,16 @@ class _UploadPhotoScreenState extends State<UploadPhotoScreen> {
 
   Future<void> _pick() async {
     try {
-      final photo = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 86);
+      final photo = await _picker.pickImage(
+          source: ImageSource.gallery, imageQuality: 86);
       if (photo == null) return;
       setState(() => _selected = photo);
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Photo access is unavailable right now. You can still demo the app with the built-in preview card.')),
+        const SnackBar(
+            content: Text(
+                'Photo access is unavailable right now. You can still demo the app with the built-in preview card.')),
       );
     }
   }
@@ -46,14 +49,55 @@ class _UploadPhotoScreenState extends State<UploadPhotoScreen> {
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         createdAt: DateTime.now(),
         localPath: _selected!.path,
-        caption: _captionController.text.trim().isEmpty ? 'A little piece of home.' : _captionController.text.trim(),
+        caption: _captionController.text.trim().isEmpty
+            ? 'A little piece of home.'
+            : _captionController.text.trim(),
       ),
     );
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Photo saved to your companion feed.')),
+      const SnackBar(
+          content:
+              Text('Photo saved and auto-shared with your connected circle.')),
     );
+  }
+
+  Future<void> _deletePhoto(PhotoEntry photo) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete photo?'),
+        content: const Text(
+          'This will remove the photo from your history and from your circle feed.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await AppStateScope.of(context).deletePhoto(photo);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Photo deleted.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not delete photo: $error')),
+      );
+    }
   }
 
   @override
@@ -95,12 +139,27 @@ class _UploadPhotoScreenState extends State<UploadPhotoScreen> {
             child: const Text('Save photo memory'),
           ),
           const SizedBox(height: 24),
-          const Text('Photo history', style: TextStyle(fontWeight: FontWeight.w700)),
+          const Text('Photo history',
+              style: TextStyle(fontWeight: FontWeight.w700)),
           const SizedBox(height: 12),
           ...state.photos.map(
             (photo) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              child: PhotoPreviewCard(photo: photo),
+              child: Column(
+                children: [
+                  PhotoPreviewCard(photo: photo),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      onPressed:
+                          state.isBusy ? null : () => _deletePhoto(photo),
+                      icon: const Icon(Icons.delete_outline_rounded),
+                      label: const Text('Delete'),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],

@@ -10,7 +10,8 @@ class DemoRepository {
     PhotoEntry(
       id: 'seed-photo',
       createdAt: DateTime.now().subtract(const Duration(hours: 8)),
-      caption: 'Add a comforting memory photo to personalize your Sathi preview.',
+      caption:
+          'Add a comforting memory photo to personalize your Sathi preview.',
     ),
   ];
 
@@ -18,15 +19,19 @@ class DemoRepository {
     VoiceJournalEntry(
       id: 'seed-journal',
       createdAt: DateTime.now().subtract(const Duration(hours: 5)),
-      transcript: 'Today I missed home, but talking with friends helped me settle down a little.',
+      transcript:
+          'Today I missed home, but talking with friends helped me settle down a little.',
       mood: 'Reflective',
       energy: 'Steady',
-      summary: 'You missed home today, but connection helped you feel more grounded.',
-      suggestion: 'Plan one familiar ritual tonight: music, tea, or a short call home.',
+      summary:
+          'You missed home today, but connection helped you feel more grounded.',
+      suggestion:
+          'Plan one familiar ritual tonight: music, tea, or a short call home.',
       safety: 'gentle-support',
       shareCard: ShareCardData(
         title: 'A small update from Sathi',
-        body: 'This week felt emotional at moments, but there were signs of steadiness and connection too.',
+        body:
+            'This week felt emotional at moments, but there were signs of steadiness and connection too.',
         footer: 'Shared only with your approval.',
       ),
     ),
@@ -45,7 +50,8 @@ class DemoRepository {
       supportDifficulty: 3,
       shareCard: ShareCardData(
         title: 'Weekly wellbeing pulse',
-        body: 'The week carried a noticeable amount of strain, especially around missing home and staying connected.',
+        body:
+            'The week carried a noticeable amount of strain, especially around missing home and staying connected.',
         footer: 'Shared only if you choose to send it.',
       ),
     ),
@@ -61,7 +67,8 @@ class DemoRepository {
       supportDifficulty: 4,
       shareCard: ShareCardData(
         title: 'Weekly wellbeing pulse',
-        body: 'The second week still felt heavy, with more pressure from workload and asking for support.',
+        body:
+            'The second week still felt heavy, with more pressure from workload and asking for support.',
         footer: 'Shared only if you choose to send it.',
       ),
     ),
@@ -69,7 +76,8 @@ class DemoRepository {
 
   List<PhotoEntry> get photos => List.unmodifiable(_photos.reversed);
   List<VoiceJournalEntry> get journals => List.unmodifiable(_journals.reversed);
-  List<WeeklyCheckinEntry> get checkins => List.unmodifiable(_checkins.reversed);
+  List<WeeklyCheckinEntry> get checkins =>
+      List.unmodifiable(_checkins.reversed);
 
   Future<PhotoEntry> savePhoto(PhotoEntry entry) async {
     await Future<void>.delayed(const Duration(milliseconds: 450));
@@ -77,10 +85,20 @@ class DemoRepository {
     return entry;
   }
 
+  Future<void> deletePhoto(String id) async {
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+    _photos.removeWhere((entry) => entry.id == id);
+  }
+
   Future<VoiceJournalEntry> saveJournal(VoiceJournalEntry entry) async {
     await Future<void>.delayed(const Duration(milliseconds: 700));
     _journals.add(entry);
     return entry;
+  }
+
+  Future<void> deleteJournal(String id) async {
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+    _journals.removeWhere((entry) => entry.id == id);
   }
 
   Future<WeeklyCheckinEntry> saveCheckin(WeeklyCheckinEntry entry) async {

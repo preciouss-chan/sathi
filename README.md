@@ -64,6 +64,46 @@ flutter run --dart-define=USE_FIREBASE=true
 
 4. Replace the placeholder initialization comment in `lib/main.dart` with your generated Firebase options if you use them.
 
+For the connectivity MVP, anonymous auth is the cheapest starting point. When `USE_FIREBASE=true`, the app attempts Firebase anonymous sign-in at launch and creates a lightweight Firestore user profile with a simple `connectCode` like `SAT-ABCD`.
+
+### Suggested Firestore collections for connectivity
+
+- `users/{uid}`
+- `users/{uid}/incoming_requests/{fromUid}`
+- `users/{uid}/connections/{otherUid}`
+- `users/{uid}/shared_updates/{updateId}`
+
+This is enough for manual connection requests, accepted circles, and explicit in-app sharing.
+
+### Firestore rules setup
+
+This repo now includes:
+
+- `firebase.json`
+- `firestore.rules`
+
+Deploy the rules after connecting this repo to your Firebase project:
+
+```bash
+firebase login
+firebase use <your-project-id>
+firebase deploy --only firestore:rules
+```
+
+These rules support the current anonymous-auth connectivity MVP:
+
+- authenticated users can read basic user profiles
+- users can only edit their own profile
+- users can send incoming requests into another user's request inbox
+- users can only read their own request inbox, own connections, and updates shared to them
+- private in-app sharing is only allowed between two users who already have mutual connection docs
+
+For local development, make sure Firebase Auth (anonymous) and Firestore are both enabled in the Firebase console before running:
+
+```bash
+flutter run --dart-define=USE_FIREBASE=true
+```
+
 ## Enabling OpenAI
 
 The MVP includes a stubbed service in `lib/src/services/openai_wellbeing_service.dart`.

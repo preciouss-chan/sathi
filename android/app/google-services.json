@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "875207649513",
+    "project_id": "sathi-cd772",
+    "storage_bucket": "sathi-cd772.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:875207649513:android:bc392e14c36c626537e878",
+        "android_client_info": {
+          "package_name": "com.example.sathi"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyADjBt3yzALzeaU0sU2kD0XdYqcXzBnOK8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

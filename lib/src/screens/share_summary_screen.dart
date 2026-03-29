@@ -4,6 +4,7 @@ import 'package:share_plus/share_plus.dart';
 import '../state/app_state.dart';
 import '../widgets/app_cards.dart';
 import '../widgets/primary_shell.dart';
+import 'connections_screen.dart';
 
 class ShareSummaryScreen extends StatelessWidget {
   const ShareSummaryScreen({super.key});
@@ -27,6 +28,12 @@ class ShareSummaryScreen extends StatelessWidget {
           if (card != null) ...[
             ShareSummaryCard(data: card),
             const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: () => Navigator.pushNamed(context, ConnectionsScreen.routeName),
+              icon: const Icon(Icons.people_alt_outlined),
+              label: const Text('Share inside Sathi'),
+            ),
+            const SizedBox(height: 12),
             ElevatedButton.icon(
               onPressed: () async {
                 try {
