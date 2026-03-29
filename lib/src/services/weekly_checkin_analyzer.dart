@@ -1,3 +1,4 @@
+import '../models/voice_journal_entry.dart';
 import '../models/weekly_analysis.dart';
 import '../models/weekly_checkin_entry.dart';
 
@@ -16,26 +17,45 @@ class WeeklyCheckinAnalyzer {
     WeeklyCheckinEntry current, {
     WeeklyCheckinEntry? previous,
     List<WeeklyCheckinEntry> history = const [],
+    List<VoiceJournalEntry> currentVoiceJournals = const [],
+    List<VoiceJournalEntry> previousVoiceJournals = const [],
   }) {
-    final totalScore = current.totalScore;
-    final delta = previous == null ? null : totalScore - previous.totalScore;
+    final checkinScore = current.totalScore;
+    final voiceSignalScore = _voiceSignalScore(currentVoiceJournals);
+    final totalScore = checkinScore + voiceSignalScore;
+    final previousTotalScore = previous == null
+        ? null
+        : previous.totalScore + _voiceSignalScore(previousVoiceJournals);
+    final delta =
+        previousTotalScore == null ? null : totalScore - previousTotalScore;
     final hasCriticalDelta = delta != null && delta >= 7;
-    final hasRedFlagOverride = current.dailyFunctionImpact >= 5 || current.moodDrain >= 5;
+    final hasRedFlagOverride =
+        current.dailyFunctionImpact >= 5 || current.moodDrain >= 5;
     final tier = _resolveTier(
       totalScore: totalScore,
       hasCriticalDelta: hasCriticalDelta,
       hasRedFlagOverride: hasRedFlagOverride,
     );
     final points = _themePoints(current);
-    final deltas = previous == null ? const <WeeklyThemeDelta>[] : _themeDeltas(current, previous);
+    final deltas = previous == null
+        ? const <WeeklyThemeDelta>[]
+        : _themeDeltas(current, previous);
     final recurringThemes = _recurringThemes(current, history);
-    final dominantThemes = [...points]..sort((a, b) => b.score.compareTo(a.score));
-    final topThemes = dominantThemes.where((point) => point.score >= 4).take(2).map((point) => point.label).toList();
+    final dominantThemes = [...points]
+      ..sort((a, b) => b.score.compareTo(a.score));
+    final topThemes = dominantThemes
+        .where((point) => point.score >= 4)
+        .take(2)
+        .map((point) => point.label)
+        .toList();
 
     return WeeklyAnalysis(
       entry: current,
       tier: tier,
       totalScore: totalScore,
+      checkinScore: checkinScore,
+      voiceSignalScore: voiceSignalScore,
+      recentVoiceJournalCount: currentVoiceJournals.length,
       deltaFromPreviousWeek: delta,
       hasCriticalDelta: hasCriticalDelta,
       hasRedFlagOverride: hasRedFlagOverride,
@@ -45,6 +65,8 @@ class WeeklyCheckinAnalyzer {
       dominantThemes: dominantThemes.take(3).toList(),
       observation: _observation(
         totalScore: totalScore,
+        voiceSignalScore: voiceSignalScore,
+        recentVoiceJournalCount: currentVoiceJournals.length,
         tier: tier,
         topThemes: topThemes,
         hasRedFlagOverride: hasRedFlagOverride,
@@ -52,11 +74,14 @@ class WeeklyCheckinAnalyzer {
       supportMessage: _supportMessage(
         tier: tier,
         topThemes: topThemes,
+        currentVoiceJournals: currentVoiceJournals,
         hasCriticalDelta: hasCriticalDelta,
         hasRedFlagOverride: hasRedFlagOverride,
       ),
       comparisonMessage: _comparisonMessage(
         delta: delta,
+        currentVoiceJournalCount: currentVoiceJournals.length,
+        previousVoiceJournalCount: previousVoiceJournals.length,
         deltas: deltas,
         recurringThemes: recurringThemes,
       ),
@@ -84,17 +109,37 @@ class WeeklyCheckinAnalyzer {
 
   List<WeeklyThemePoint> _themePoints(WeeklyCheckinEntry entry) {
     return [
-      WeeklyThemePoint(key: 'homesick', label: questionLabels[0], score: entry.homesickIntensity),
-      WeeklyThemePoint(key: 'social', label: questionLabels[1], score: entry.socialConnectionStruggle),
-      WeeklyThemePoint(key: 'workload', label: questionLabels[2], score: entry.workloadOverwhelm),
-      WeeklyThemePoint(key: 'function', label: questionLabels[3], score: entry.dailyFunctionImpact),
-      WeeklyThemePoint(key: 'culture', label: questionLabels[4], score: entry.culturalFriction),
-      WeeklyThemePoint(key: 'mood', label: questionLabels[5], score: entry.moodDrain),
-      WeeklyThemePoint(key: 'support', label: questionLabels[6], score: entry.supportDifficulty),
+      WeeklyThemePoint(
+          key: 'homesick',
+          label: questionLabels[0],
+          score: entry.homesickIntensity),
+      WeeklyThemePoint(
+          key: 'social',
+          label: questionLabels[1],
+          score: entry.socialConnectionStruggle),
+      WeeklyThemePoint(
+          key: 'workload',
+          label: questionLabels[2],
+          score: entry.workloadOverwhelm),
+      WeeklyThemePoint(
+          key: 'function',
+          label: questionLabels[3],
+          score: entry.dailyFunctionImpact),
+      WeeklyThemePoint(
+          key: 'culture',
+          label: questionLabels[4],
+          score: entry.culturalFriction),
+      WeeklyThemePoint(
+          key: 'mood', label: questionLabels[5], score: entry.moodDrain),
+      WeeklyThemePoint(
+          key: 'support',
+          label: questionLabels[6],
+          score: entry.supportDifficulty),
     ];
   }
 
-  List<WeeklyThemeDelta> _themeDeltas(WeeklyCheckinEntry current, WeeklyCheckinEntry previous) {
+  List<WeeklyThemeDelta> _themeDeltas(
+      WeeklyCheckinEntry current, WeeklyCheckinEntry previous) {
     final currentPoints = _themePoints(current);
     final previousPoints = _themePoints(previous);
     return List<WeeklyThemeDelta>.generate(
@@ -107,7 +152,8 @@ class WeeklyCheckinAnalyzer {
     );
   }
 
-  List<String> _recurringThemes(WeeklyCheckinEntry current, List<WeeklyCheckinEntry> history) {
+  List<String> _recurringThemes(
+      WeeklyCheckinEntry current, List<WeeklyCheckinEntry> history) {
     if (history.length < 2) {
       return const [];
     }
@@ -118,7 +164,11 @@ class WeeklyCheckinAnalyzer {
     final recurring = <String>[];
 
     for (var index = 0; index < themes.length; index++) {
-      final scores = [themes[index].score, olderOne[index].score, olderTwo[index].score];
+      final scores = [
+        themes[index].score,
+        olderOne[index].score,
+        olderTwo[index].score
+      ];
       if (scores.every((value) => value >= 4)) {
         recurring.add(themes[index].label);
       }
@@ -129,52 +179,67 @@ class WeeklyCheckinAnalyzer {
 
   String _observation({
     required double totalScore,
+    required double voiceSignalScore,
+    required int recentVoiceJournalCount,
     required WeeklyRiskTier tier,
     required List<String> topThemes,
     required bool hasRedFlagOverride,
   }) {
-    final focus = topThemes.isEmpty ? 'The highest-pressure areas look spread out rather than concentrated in one place.' : 'The strongest strain signals this week are around ${topThemes.join(' and ')}.';
+    final focus = topThemes.isEmpty
+        ? 'The highest-pressure areas look spread out rather than concentrated in one place.'
+        : 'The strongest strain signals this week are around ${topThemes.join(' and ')}.';
+    final voiceNote = recentVoiceJournalCount == 0
+        ? ''
+        : ' Recent voice journals add ${voiceSignalScore.toStringAsFixed(0)} point${voiceSignalScore.round() == 1 ? '' : 's'} of context to this week\'s score.';
 
     switch (tier) {
       case WeeklyRiskTier.stable:
-        return 'This week scores ${totalScore.toStringAsFixed(0)} out of 35, which falls in the stability range. $focus';
+        return 'This week scores ${totalScore.toStringAsFixed(0)}, which falls in the stability range. $focus$voiceNote';
       case WeeklyRiskTier.moderateStrain:
-        return 'This week scores ${totalScore.toStringAsFixed(0)} out of 35, which points to moderate strain rather than crisis. $focus';
+        return 'This week scores ${totalScore.toStringAsFixed(0)}, which points to moderate strain rather than crisis. $focus$voiceNote';
       case WeeklyRiskTier.acuteDistress:
         if (hasRedFlagOverride) {
-          return 'This week scores ${totalScore.toStringAsFixed(0)} out of 35, and at least one daily functioning or mood item hit the highest level. $focus';
+          return 'This week scores ${totalScore.toStringAsFixed(0)}, and at least one daily functioning or mood item hit the highest level. $focus$voiceNote';
         }
-        return 'This week scores ${totalScore.toStringAsFixed(0)} out of 35, which puts it in the highest strain band. $focus';
+        return 'This week scores ${totalScore.toStringAsFixed(0)}, which puts it in the highest strain band. $focus$voiceNote';
     }
   }
 
   String _supportMessage({
     required WeeklyRiskTier tier,
     required List<String> topThemes,
+    required List<VoiceJournalEntry> currentVoiceJournals,
     required bool hasCriticalDelta,
     required bool hasRedFlagOverride,
   }) {
-    final focus = topThemes.isEmpty ? 'You do not have to untangle everything at once.' : 'It makes sense if ${topThemes.join(' and ')} have been taking extra energy.';
+    final focus = topThemes.isEmpty
+        ? 'You do not have to untangle everything at once.'
+        : 'It makes sense if ${topThemes.join(' and ')} have been taking extra energy.';
+    final voiceNote = currentVoiceJournals.isEmpty
+        ? ''
+        : ' Your recent voice journals also suggest ${currentVoiceJournals.first.mood.toLowerCase()} energy.';
 
     if (hasRedFlagOverride) {
-      return '$focus This pattern can feel heavy, and it is okay to want steadier support right now.';
+      return '$focus This pattern can feel heavy, and it is okay to want steadier support right now.$voiceNote';
     }
     if (hasCriticalDelta) {
-      return '$focus The shift from last week was sharp, so a harder week does not mean you failed; it means something meaningful may have changed.';
+      return '$focus The shift from last week was sharp, so a harder week does not mean you failed; it means something meaningful may have changed.$voiceNote';
     }
 
     switch (tier) {
       case WeeklyRiskTier.stable:
-        return '$focus There are signs of strain, but there is also evidence that some parts of the week stayed manageable.';
+        return '$focus There are signs of strain, but there is also evidence that some parts of the week stayed manageable.$voiceNote';
       case WeeklyRiskTier.moderateStrain:
-        return '$focus You deserve care before things pile up further.';
+        return '$focus You deserve care before things pile up further.$voiceNote';
       case WeeklyRiskTier.acuteDistress:
-        return '$focus You should not have to carry that level of pressure alone.';
+        return '$focus You should not have to carry that level of pressure alone.$voiceNote';
     }
   }
 
   String _comparisonMessage({
     required double? delta,
+    required int currentVoiceJournalCount,
+    required int previousVoiceJournalCount,
     required List<WeeklyThemeDelta> deltas,
     required List<String> recurringThemes,
   }) {
@@ -182,14 +247,22 @@ class WeeklyCheckinAnalyzer {
       return 'Once there is another weekly check-in, Sathi can compare what improved, what worsened, and which themes keep repeating.';
     }
 
-    final improved = deltas.where((item) => item.delta <= -1).map((item) => item.label).toList();
-    final worsened = deltas.where((item) => item.delta >= 1).map((item) => item.label).toList();
+    final improved = deltas
+        .where((item) => item.delta <= -1)
+        .map((item) => item.label)
+        .toList();
+    final worsened = deltas
+        .where((item) => item.delta >= 1)
+        .map((item) => item.label)
+        .toList();
     final pieces = <String>[];
 
     if (delta >= 1) {
-      pieces.add('Overall strain is up by ${delta.toStringAsFixed(0)} points from last week.');
+      pieces.add(
+          'Overall strain is up by ${delta.toStringAsFixed(0)} points from last week.');
     } else if (delta <= -1) {
-      pieces.add('Overall strain is down by ${delta.abs().toStringAsFixed(0)} points from last week.');
+      pieces.add(
+          'Overall strain is down by ${delta.abs().toStringAsFixed(0)} points from last week.');
     } else {
       pieces.add('Overall strain is about the same as last week.');
     }
@@ -198,10 +271,16 @@ class WeeklyCheckinAnalyzer {
       pieces.add('Some relief shows up in ${improved.take(2).join(' and ')}.');
     }
     if (worsened.isNotEmpty) {
-      pieces.add('More pressure shows up in ${worsened.take(2).join(' and ')}.');
+      pieces
+          .add('More pressure shows up in ${worsened.take(2).join(' and ')}.');
     }
     if (recurringThemes.isNotEmpty) {
-      pieces.add('Recurring themes over three weeks include ${recurringThemes.join(' and ')}.');
+      pieces.add(
+          'Recurring themes over three weeks include ${recurringThemes.join(' and ')}.');
+    }
+    if (currentVoiceJournalCount > 0 || previousVoiceJournalCount > 0) {
+      pieces.add(
+          'Voice journals are also included in this week\'s overall score.');
     }
 
     return pieces.join(' ');
@@ -227,5 +306,47 @@ class WeeklyCheckinAnalyzer {
       case WeeklyRiskTier.acuteDistress:
         return 'Current response: suggest a direct follow-up from a counselor, advisor, or another trusted support person.';
     }
+  }
+
+  double _voiceSignalScore(List<VoiceJournalEntry> journals) {
+    if (journals.isEmpty) return 0;
+
+    final scores =
+        journals.take(3).map(_voiceJournalSeverity).toList(growable: false);
+    final average = scores.reduce((a, b) => a + b) / scores.length;
+    return average.clamp(0, 5).toDouble();
+  }
+
+  double _voiceJournalSeverity(VoiceJournalEntry entry) {
+    var score = 0.0;
+
+    switch (entry.safety) {
+      case 'priority-support':
+        score += 3.0;
+        break;
+      case 'gentle-check-in':
+        score += 2.0;
+        break;
+      default:
+        score += 1.0;
+    }
+
+    final mood = entry.mood.toLowerCase();
+    if (mood.contains('anx') ||
+        mood.contains('stress') ||
+        mood.contains('overwhelm') ||
+        mood.contains('heavy') ||
+        mood.contains('sad') ||
+        mood.contains('angry') ||
+        mood.contains('homesick')) {
+      score += 1.5;
+    }
+
+    final energy = entry.energy.toLowerCase();
+    if (energy.contains('low') || energy.contains('heavy')) {
+      score += 1.0;
+    }
+
+    return score.clamp(0, 5).toDouble();
   }
 }

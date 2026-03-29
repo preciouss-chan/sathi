@@ -62,7 +62,7 @@ service cloud.firestore {
           || (isSignedIn() && resource.data.authorUid == request.auth.uid);
 
         allow create: if isSignedIn()
-          && request.resource.data.keys().hasOnly(['authorUid', 'authorName', 'type', 'title', 'body', 'footer', 'createdAt', 'transcript', 'imageUrl', 'audioUrl', 'sourceEntryId'])
+          && request.resource.data.keys().hasOnly(['authorUid', 'authorName', 'type', 'title', 'body', 'footer', 'createdAt', 'transcript', 'imageUrl', 'audioUrl', 'sourceEntryId', 'mood', 'energy', 'suggestion'])
           && request.resource.data.authorUid == request.auth.uid
           && request.resource.data.authorName is string
           && request.resource.data.type is string
@@ -73,6 +73,9 @@ service cloud.firestore {
           && (!('imageUrl' in request.resource.data) || request.resource.data.imageUrl is string)
           && (!('audioUrl' in request.resource.data) || request.resource.data.audioUrl is string)
           && (!('sourceEntryId' in request.resource.data) || request.resource.data.sourceEntryId is string)
+          && (!('mood' in request.resource.data) || request.resource.data.mood is string)
+          && (!('energy' in request.resource.data) || request.resource.data.energy is string)
+          && (!('suggestion' in request.resource.data) || request.resource.data.suggestion is string)
           && (
             userId == request.auth.uid
             || (

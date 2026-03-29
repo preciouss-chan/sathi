@@ -8,7 +8,8 @@ import 'src/services/connectivity_service.dart';
 import 'src/services/demo_repository.dart';
 import 'src/state/app_state.dart';
 
-const bool kUseFirebase = bool.fromEnvironment('USE_FIREBASE', defaultValue: false);
+const bool kUseFirebase =
+    bool.fromEnvironment('USE_FIREBASE', defaultValue: false);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,8 +22,10 @@ Future<void> main() async {
       );
       await AuthService().signInAnonymously();
       firebaseReady = true;
-    } catch (_) {
-      // Fallback to demo mode silently so the hackathon demo still works.
+    } catch (error, stackTrace) {
+      debugPrint('Firebase initialization failed. Falling back to demo mode.');
+      debugPrint('$error');
+      debugPrintStack(stackTrace: stackTrace);
     }
   }
 

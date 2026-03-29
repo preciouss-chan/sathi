@@ -68,7 +68,10 @@ class _RecordVoiceScreenState extends State<RecordVoiceScreen> {
   }
 
   Future<void> _analyze() async {
-    if (_transcriptController.text.trim().isEmpty) return;
+    if (_transcriptController.text.trim().isEmpty &&
+        (_audioPath == null || _audioPath!.isEmpty)) {
+      return;
+    }
     setState(() => _isProcessing = true);
 
     try {
@@ -76,6 +79,8 @@ class _RecordVoiceScreenState extends State<RecordVoiceScreen> {
         transcript: _transcriptController.text.trim(),
         audioPath: _audioPath,
       );
+
+      _transcriptController.text = entry.transcript;
 
       if (!mounted) return;
 
@@ -89,6 +94,7 @@ class _RecordVoiceScreenState extends State<RecordVoiceScreen> {
           ),
         ),
       );
+      Navigator.popUntil(context, ModalRoute.withName('/'));
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -125,6 +131,7 @@ class _RecordVoiceScreenState extends State<RecordVoiceScreen> {
     );
 
     if (confirmed != true) return;
+    if (!mounted) return;
 
     try {
       await AppStateScope.of(context).deleteJournal(entry);

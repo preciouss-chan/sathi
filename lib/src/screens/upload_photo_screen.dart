@@ -85,6 +85,7 @@ class _UploadPhotoScreenState extends State<UploadPhotoScreen> {
     );
 
     if (confirmed != true) return;
+    if (!mounted) return;
 
     try {
       await AppStateScope.of(context).deletePhoto(photo);

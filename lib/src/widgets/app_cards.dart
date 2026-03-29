@@ -388,6 +388,10 @@ class SharedUpdateCard extends StatelessWidget {
         update.transcript != null && update.transcript!.isNotEmpty;
     final hasAudio = (update.audioUrl != null && update.audioUrl!.isNotEmpty) ||
         (update.localAudioPath != null && update.localAudioPath!.isNotEmpty);
+    final hasMood = update.mood != null && update.mood!.isNotEmpty;
+    final hasEnergy = update.energy != null && update.energy!.isNotEmpty;
+    final hasSuggestion =
+        update.suggestion != null && update.suggestion!.isNotEmpty;
     final feedMeta = _sharedUpdateMeta(update.type);
 
     return SectionCard(
@@ -478,11 +482,66 @@ class SharedUpdateCard extends StatelessWidget {
             const SizedBox(height: 10),
           ],
           Text(update.body),
+          if ((update.type == 'voice_journal' ||
+                  update.type == 'post' ||
+                  update.type == 'weekly_insight') &&
+              (hasMood || hasEnergy)) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (hasMood)
+                  Chip(
+                    label: Text(
+                      update.type == 'weekly_insight'
+                          ? 'Weekly status: ${update.mood}'
+                          : 'Feeling: ${update.mood}',
+                    ),
+                  ),
+                if (hasEnergy)
+                  Chip(
+                    label: Text(
+                      update.type == 'weekly_insight'
+                          ? 'Score: ${update.energy}'
+                          : 'Energy: ${update.energy}',
+                    ),
+                  ),
+              ],
+            ),
+          ],
           if (hasAudio) ...[
             const SizedBox(height: 12),
             SharedVoicePlayer(
               audioUrl: update.audioUrl,
               localAudioPath: update.localAudioPath,
+            ),
+          ],
+          if ((update.type == 'voice_journal' ||
+                  update.type == 'post' ||
+                  update.type == 'weekly_insight') &&
+              hasSuggestion) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.mint.withValues(alpha: 0.45),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    update.type == 'weekly_insight'
+                        ? 'Suggested next step'
+                        : 'How you could support them',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(update.suggestion!),
+                ],
+              ),
             ),
           ],
           if (hasTranscript) ...[
@@ -754,6 +813,18 @@ Color _connectionTint(int index) {
         icon: Icons.mic_none_rounded,
         label: 'Voice note',
         tint: AppTheme.peach
+      );
+    case 'weekly_insight':
+      return (
+        icon: Icons.favorite_outline_rounded,
+        label: 'Weekly update',
+        tint: AppTheme.mint,
+      );
+    case 'post':
+      return (
+        icon: Icons.collections_bookmark_outlined,
+        label: 'Post',
+        tint: AppTheme.lavender,
       );
     default:
       return (icon: Icons.notes_rounded, label: 'Update', tint: AppTheme.mint);

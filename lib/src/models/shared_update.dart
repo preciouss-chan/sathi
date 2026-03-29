@@ -14,6 +14,9 @@ class SharedUpdate {
     this.audioUrl,
     this.localAudioPath,
     this.sourceEntryId,
+    this.mood,
+    this.energy,
+    this.suggestion,
   });
 
   final String id;
@@ -30,4 +33,7 @@ class SharedUpdate {
   final String? audioUrl;
   final String? localAudioPath;
   final String? sourceEntryId;
+  final String? mood;
+  final String? energy;
+  final String? suggestion;
 }

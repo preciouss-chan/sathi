@@ -83,6 +83,14 @@ class AnalysisResponse(BaseModel):
     emotion: str
     mental_health_score: int
     detected_language: str  # New field to show what language was detected
+    mood: str
+    energy: str
+    summary: str
+    suggestion: str
+    safety: str
+    share_title: str
+    share_body: str
+    share_footer: str
 
 
 @app.get("/")
@@ -160,7 +168,15 @@ async def analyze_voice(audio: UploadFile = File(...)):
             transcription=transcription,
             emotion=analysis["emotion"],
             mental_health_score=analysis["score"],
-            detected_language=detected_language
+            detected_language=detected_language,
+            mood=analysis["mood"],
+            energy=analysis["energy"],
+            summary=analysis["summary"],
+            suggestion=analysis["suggestion"],
+            safety=analysis["safety"],
+            share_title=analysis["share_title"],
+            share_body=analysis["share_body"],
+            share_footer=analysis["share_footer"],
         )
     
     except Exception as e:
@@ -207,7 +223,18 @@ async def analyze_with_gemini(text: str, language: str = "en") -> dict:
         # Adjust prompt based on language
         if language == "ne":  # Nepali
             prompt = f"""यो मानसिक स्वास्थ्य पाठको विश्लेषण गर्नुहोस् र केवल JSON वस्तु फिर्ता गर्नुहोस्:
-{{"emotion": "शब्द", "score": संख्या}}
+{{
+  "emotion": "शब्द",
+  "score": संख्या,
+  "mood": "शब्द वा वाक्यांश",
+  "energy": "Low/Heavy/Steady/Grounded",
+  "summary": "२ वाक्यको कोमल सारांश",
+  "suggestion": "१ कोमल उपयोगी सुझाव",
+  "safety": "priority-support/gentle-check-in/supportive-check",
+  "share_title": "शेयर कार्ड शीर्षक",
+  "share_body": "शेयर कार्डको छोटो मुख्य भाग",
+  "share_footer": "शेयर कार्ड फूटर"
+}}
 
 जहाँ emotion एउटा शब्द हो (खुशी/दुःखी/चिन्तित/निराश/तनाव/शान्त/रिसाएको/आशावादी) र score 1-10 हो:
 - 1-3: तुरुन्त मद्दत चाहिन्छ
@@ -215,16 +242,33 @@ async def analyze_with_gemini(text: str, language: str = "en") -> dict:
 - 6-7: चुनौतीहरू तर व्यवस्थापन गर्दै
 - 8-10: राम्रो छ
 
+`summary`, `suggestion`, `share_*` वाक्यहरू सहानुभूतिपूर्ण र सहयोगी हुनुपर्छ, चिकित्सकीय निदान जस्तो होइन।
+
 पाठ: {text}"""
         else:  # English and other languages
-            prompt = f"""Analyze this mental health text and respond with ONLY a JSON object:
-{{"emotion": "word", "score": number}}
+            prompt = f"""Analyze this mental health reflection and respond with ONLY a JSON object:
+{{
+  "emotion": "word",
+  "score": number,
+  "mood": "short phrase",
+  "energy": "Low/Heavy/Steady/Grounded",
+  "summary": "gentle 1-2 sentence summary",
+  "suggestion": "one supportive practical suggestion",
+  "safety": "priority-support/gentle-check-in/supportive-check",
+  "share_title": "short share card title",
+  "share_body": "short share card body",
+  "share_footer": "short share card footer"
+}}
 
 Where emotion is ONE word (happy/sad/anxious/depressed/stressed/calm/angry/hopeful) and score is 1-10:
 - 1-3: Needs urgent help
-- 4-5: Struggling significantly  
+- 4-5: Struggling significantly
 - 6-7: Managing with challenges
 - 8-10: Doing well
+
+Use supportive, non-diagnostic language.
+Do NOT write in second person. Avoid phrases like "you are feeling" or "your reflection".
+Prefer neutral phrasing such as "This reflection..." or named phrasing if appropriate.
 
 Text: {text}
 Language detected: {language}"""
@@ -258,7 +302,20 @@ Language detected: {language}"""
                 result = json.loads(content)
                 
                 # Validate
-                if "emotion" not in result or "score" not in result:
+                required_fields = [
+                    "emotion",
+                    "score",
+                    "mood",
+                    "energy",
+                    "summary",
+                    "suggestion",
+                    "safety",
+                    "share_title",
+                    "share_body",
+                    "share_footer",
+                ]
+
+                if any(field not in result for field in required_fields):
                     raise ValueError("Invalid response format")
                 
                 score = int(result["score"])
@@ -267,7 +324,15 @@ Language detected: {language}"""
                 
                 return {
                     "emotion": result["emotion"].lower(),
-                    "score": score
+                    "score": score,
+                    "mood": str(result["mood"]).strip(),
+                    "energy": str(result["energy"]).strip(),
+                    "summary": str(result["summary"]).strip(),
+                    "suggestion": str(result["suggestion"]).strip(),
+                    "safety": str(result["safety"]).strip(),
+                    "share_title": str(result["share_title"]).strip(),
+                    "share_body": str(result["share_body"]).strip(),
+                    "share_footer": str(result["share_footer"]).strip(),
                 }
                 
             except Exception as e:

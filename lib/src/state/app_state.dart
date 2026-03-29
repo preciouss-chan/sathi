@@ -4,6 +4,7 @@ import '../models/app_user_profile.dart';
 import '../models/connected_person.dart';
 import '../models/connection_request.dart';
 import '../models/photo_entry.dart';
+import '../models/post_entry.dart';
 import '../models/share_card_data.dart';
 import '../models/shared_update.dart';
 import '../models/voice_journal_entry.dart';
@@ -12,6 +13,7 @@ import '../models/weekly_analysis.dart';
 import '../models/weekly_checkin_entry.dart';
 import '../services/connectivity_service.dart';
 import '../services/demo_repository.dart';
+import '../services/widget_snapshot_service.dart';
 import '../services/weekly_checkin_analyzer.dart';
 
 class AppState extends ChangeNotifier {
@@ -20,6 +22,7 @@ class AppState extends ChangeNotifier {
   final DemoRepository repository;
   final WeeklyCheckinAnalyzer _weeklyAnalyzer = WeeklyCheckinAnalyzer();
   final ConnectivityService connectivityService;
+  final WidgetSnapshotService _widgetSnapshotService = WidgetSnapshotService();
   bool isBusy = false;
   bool isConnectivityBusy = false;
   ShareCardData? pendingShareCard;
@@ -31,6 +34,9 @@ class AppState extends ChangeNotifier {
   List<PhotoEntry> get photos => repository.photos;
   List<VoiceJournalEntry> get journals => repository.journals;
   List<WeeklyCheckinEntry> get checkins => repository.checkins;
+  List<PostEntry> get posts => repository.posts;
+  bool get isFirebaseEnabled => connectivityService.useFirebase;
+  bool get isDemoMode => !connectivityService.useFirebase;
 
   WeeklyCheckinEntry? get latestCheckin =>
       checkins.isNotEmpty ? checkins.first : null;
@@ -41,10 +47,25 @@ class AppState extends ChangeNotifier {
     final current = latestCheckin;
     if (current == null) return null;
 
+    final currentVoiceJournals = journals
+        .where((journal) => !journal.createdAt.isBefore(current.createdAt))
+        .toList();
+    final previousVoiceJournals = previousCheckin == null
+        ? const <VoiceJournalEntry>[]
+        : journals
+            .where(
+              (journal) =>
+                  !journal.createdAt.isBefore(previousCheckin!.createdAt) &&
+                  journal.createdAt.isBefore(current.createdAt),
+            )
+            .toList();
+
     return _weeklyAnalyzer.analyze(
       current,
       previous: previousCheckin,
       history: checkins.skip(1).toList(),
+      currentVoiceJournals: currentVoiceJournals,
+      previousVoiceJournals: previousVoiceJournals,
     );
   }
 
@@ -165,6 +186,9 @@ class AppState extends ChangeNotifier {
       if (update.type == 'voice_journal' && update.sourceEntryId != null) {
         await repository.deleteJournal(update.sourceEntryId!);
       }
+      if (update.type == 'post' && update.sourceEntryId != null) {
+        await repository.deletePost(update.sourceEntryId!);
+      }
       await loadConnectivity();
     } finally {
       isBusy = false;
@@ -175,10 +199,33 @@ class AppState extends ChangeNotifier {
   Future<void> addCheckin(WeeklyCheckinEntry entry) async {
     isBusy = true;
     notifyListeners();
-    await repository.saveCheckin(entry);
-    pendingShareCard = entry.shareCard;
-    isBusy = false;
+    try {
+      await repository.saveCheckin(entry);
+      pendingShareCard = entry.shareCard;
+      final analysis = latestWeeklyAnalysis;
+      if (analysis != null) {
+        await connectivityService.autoShareWeeklyInsightToAllConnections(
+          analysis,
+        );
+        await loadConnectivity();
+      }
+    } finally {
+      isBusy = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> addPost(PostEntry entry) async {
+    isBusy = true;
     notifyListeners();
+    try {
+      await repository.savePost(entry);
+      await connectivityService.autoSharePostToAllConnections(entry);
+      await loadConnectivity();
+    } finally {
+      isBusy = false;
+      notifyListeners();
+    }
   }
 
   void setPendingShareCard(ShareCardData card) {
@@ -194,6 +241,10 @@ class AppState extends ChangeNotifier {
       incomingRequests = await connectivityService.fetchIncomingRequests();
       connections = await connectivityService.fetchConnections();
       sharedUpdates = await connectivityService.fetchSharedUpdates();
+      await _widgetSnapshotService.updateFromSharedUpdates(
+        sharedUpdates,
+        currentUserId: currentUser?.id,
+      );
     } finally {
       isConnectivityBusy = false;
       notifyListeners();
@@ -252,17 +303,6 @@ class AppState extends ChangeNotifier {
     } finally {
       isConnectivityBusy = false;
       notifyListeners();
-    }
-  }
-
-  static String _trendMessage(String trend) {
-    switch (trend) {
-      case 'improving':
-        return 'Your recent check-ins suggest things are feeling a bit lighter.';
-      case 'needs attention':
-        return 'This week may need a little extra care, rest, and connection.';
-      default:
-        return 'Your recent rhythm looks fairly steady right now.';
     }
   }
 }

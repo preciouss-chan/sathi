@@ -39,6 +39,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     if (confirmed != true) return;
+    if (!mounted) return;
 
     try {
       await AppStateScope.of(context).deleteSharedUpdate(update);
@@ -66,9 +67,13 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final state = AppStateScope.of(context);
     final currentUserId = state.currentUser?.id;
+    final latestWeeklyAnalysis = state.latestWeeklyAnalysis;
     final sharedUpdates = state.sharedUpdates
         .where((update) =>
-            update.type == 'photo' || update.type == 'voice_journal')
+            update.type == 'post' ||
+            update.type == 'photo' ||
+            update.type == 'voice_journal' ||
+            update.type == 'weekly_insight')
         .toList()
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
@@ -79,14 +84,52 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Your circle feed',
-            style: Theme.of(context).textTheme.headlineMedium,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Photos and voice journals shared by people in your circle.',
-            style: Theme.of(context).textTheme.bodyMedium,
+          if (state.isDemoMode) ...[
+            const SectionCard(
+              color: Color(0xFFFFF1E6),
+              child: Text(
+                'Demo mode is active. This uses the shared demo identity, so real connections between devices will not work. Run the app with USE_FIREBASE=true to test real accounts.',
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+          SectionCard(
+            color: const Color(0xFFFFF1E6),
+            child: latestWeeklyAnalysis == null
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Mental health score',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'No weekly score yet',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Complete a weekly check-in and record voice journals to generate your combined wellbeing score.',
+                      ),
+                    ],
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Mental health score',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '${latestWeeklyAnalysis.tierLabel} • ${latestWeeklyAnalysis.scoreLabel}',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(latestWeeklyAnalysis.observation),
+                    ],
+                  ),
           ),
           const SizedBox(height: 12),
           if (state.isConnectivityBusy && sharedUpdates.isEmpty)
@@ -103,11 +146,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: SharedUpdateCard(
                   update: update,
                   showDelete: currentUserId != null &&
-                      update.authorUid == currentUserId,
-                  onDelete:
-                      currentUserId != null && update.authorUid == currentUserId
-                          ? () => _deleteSharedUpdate(update)
-                          : null,
+                      update.authorUid == currentUserId &&
+                      update.type != 'weekly_insight',
+                  onDelete: currentUserId != null &&
+                          update.authorUid == currentUserId &&
+                          update.type != 'weekly_insight'
+                      ? () => _deleteSharedUpdate(update)
+                      : null,
                 ),
               ),
             ),

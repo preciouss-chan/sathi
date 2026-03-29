@@ -59,7 +59,16 @@ You should get a response like:
 {
   "transcription": "I am feeling anxious...",
   "emotion": "anxious",
-  "mental_health_score": 4
+  "mental_health_score": 4,
+  "detected_language": "en",
+  "mood": "Anxious but aware",
+  "energy": "Heavy",
+  "summary": "Your reflection suggests noticeable anxiety and some emotional strain right now.",
+  "suggestion": "Take one small grounding step today: water, rest, a short walk, or a message to someone safe.",
+  "safety": "gentle-check-in",
+  "share_title": "A friendly update",
+  "share_body": "Today's reflection carries anxiety and some strain, but there are still signs of resilience.",
+  "share_footer": "Only share this if it feels right for you."
 }
 ```
 
@@ -84,6 +93,7 @@ It accepts audio files and returns:
 - transcription (what was said)
 - emotion (single word)
 - mental_health_score (1-10)
+- mood, energy, summary, suggestion, safety, and share-card text for the Flutter app
 
 ## Cost: 100% FREE! 
 Gemini has a generous free tier - 60 requests per minute!

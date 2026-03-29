@@ -97,6 +97,13 @@ class _SummaryCard extends StatelessWidget {
             '${analysis.tierLabel} | ${analysis.scoreLabel}',
             style: Theme.of(context).textTheme.titleLarge,
           ),
+          if (analysis.recentVoiceJournalCount > 0) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Includes ${analysis.voiceSignalScore.toStringAsFixed(0)} voice-signal point${analysis.voiceSignalScore.round() == 1 ? '' : 's'} from ${analysis.recentVoiceJournalCount} recent voice journal${analysis.recentVoiceJournalCount == 1 ? '' : 's'}.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
           const SizedBox(height: 8),
           Text(analysis.observation),
           const SizedBox(height: 8),

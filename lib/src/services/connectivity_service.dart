@@ -8,9 +8,11 @@ import '../models/app_user_profile.dart';
 import '../models/connected_person.dart';
 import '../models/connection_request.dart';
 import '../models/photo_entry.dart';
+import '../models/post_entry.dart';
 import '../models/share_card_data.dart';
 import '../models/shared_update.dart';
 import '../models/voice_journal_entry.dart';
+import '../models/weekly_analysis.dart';
 
 class ConnectivityService {
   ConnectivityService({required this.useFirebase});
@@ -366,6 +368,9 @@ class ConnectivityService {
             imageUrl: doc.data()['imageUrl'] as String?,
             audioUrl: doc.data()['audioUrl'] as String?,
             sourceEntryId: doc.data()['sourceEntryId'] as String?,
+            mood: doc.data()['mood'] as String?,
+            energy: doc.data()['energy'] as String?,
+            suggestion: doc.data()['suggestion'] as String?,
           ),
         )
         .toList();
@@ -440,6 +445,9 @@ class ConnectivityService {
             transcript: entry.transcript,
             localAudioPath: entry.audioPath,
             sourceEntryId: entry.id,
+            mood: entry.mood,
+            energy: entry.energy,
+            suggestion: entry.suggestion,
           ),
         );
       }
@@ -464,6 +472,9 @@ class ConnectivityService {
         'transcript': entry.transcript,
         'audioUrl': audioUrl,
         'sourceEntryId': entry.id,
+        'mood': entry.mood,
+        'energy': entry.energy,
+        'suggestion': entry.suggestion,
         'createdAt': DateTime.now(),
       });
     }
@@ -522,6 +533,124 @@ class ConnectivityService {
     return feedRecipients.length;
   }
 
+  Future<int> autoShareWeeklyInsightToAllConnections(
+      WeeklyAnalysis analysis) async {
+    final current = await ensureCurrentUserProfile();
+    final recipients = await fetchAllConnectionsForCurrentUser();
+    final feedRecipients = _withCurrentUser(current, recipients);
+    if (feedRecipients.isEmpty) return 0;
+
+    if (!useFirebase || FirebaseAuth.instance.currentUser == null) {
+      for (final recipient in feedRecipients) {
+        _demoSharedUpdates.add(
+          SharedUpdate(
+            id: 'weekly-${recipient.uid}-${DateTime.now().millisecondsSinceEpoch}',
+            authorUid: current.id,
+            authorName: current.displayName,
+            type: 'weekly_insight',
+            title: 'Weekly wellbeing update from ${current.displayName}',
+            body: analysis.observation,
+            footer: analysis.supportMessage,
+            createdAt: DateTime.now(),
+            sourceEntryId: analysis.entry.id,
+            mood: analysis.tierLabel,
+            energy: analysis.scoreLabel,
+            suggestion: analysis.recommendedAction,
+          ),
+        );
+      }
+      return feedRecipients.length;
+    }
+
+    final batch = _firestore.batch();
+    for (final recipient in feedRecipients) {
+      final ref = _firestore
+          .collection('users')
+          .doc(recipient.uid)
+          .collection('shared_updates')
+          .doc();
+      batch.set(ref, {
+        'authorUid': current.id,
+        'authorName': current.displayName,
+        'type': 'weekly_insight',
+        'title': 'Weekly wellbeing update from ${current.displayName}',
+        'body': analysis.observation,
+        'footer': analysis.supportMessage,
+        'sourceEntryId': analysis.entry.id,
+        'mood': analysis.tierLabel,
+        'energy': analysis.scoreLabel,
+        'suggestion': analysis.recommendedAction,
+        'createdAt': DateTime.now(),
+      });
+    }
+    await batch.commit();
+    return feedRecipients.length;
+  }
+
+  Future<int> autoSharePostToAllConnections(PostEntry entry) async {
+    final current = await ensureCurrentUserProfile();
+    final recipients = await fetchAllConnectionsForCurrentUser();
+    final feedRecipients = _withCurrentUser(current, recipients);
+    if (feedRecipients.isEmpty) return 0;
+
+    if (!useFirebase || FirebaseAuth.instance.currentUser == null) {
+      for (final recipient in feedRecipients) {
+        _demoSharedUpdates.add(
+          SharedUpdate(
+            id: 'post-${recipient.uid}-${DateTime.now().millisecondsSinceEpoch}',
+            authorUid: current.id,
+            authorName: current.displayName,
+            type: 'post',
+            title: 'Post from ${current.displayName}',
+            body: entry.body,
+            footer: 'Auto-shared with your Sathi circle.',
+            createdAt: DateTime.now(),
+            transcript: entry.transcript,
+            localImagePath: entry.localImagePath,
+            imageUrl: entry.remoteImageUrl,
+            localAudioPath: entry.audioPath,
+            audioUrl: null,
+            sourceEntryId: entry.id,
+            mood: entry.mood,
+            energy: entry.energy,
+            suggestion: entry.suggestion,
+          ),
+        );
+      }
+      return feedRecipients.length;
+    }
+
+    final imageUrl = entry.hasPhoto ? await _resolvePostPhotoUrl(entry) : null;
+    final audioUrl = entry.hasAudio ? await _resolvePostAudioUrl(entry) : null;
+
+    final batch = _firestore.batch();
+    for (final recipient in feedRecipients) {
+      final ref = _firestore
+          .collection('users')
+          .doc(recipient.uid)
+          .collection('shared_updates')
+          .doc();
+      batch.set(ref, {
+        'authorUid': current.id,
+        'authorName': current.displayName,
+        'type': 'post',
+        'title': 'Post from ${current.displayName}',
+        'body': entry.body,
+        'footer': 'Auto-shared with your Sathi circle.',
+        'transcript': entry.transcript,
+        'imageUrl': imageUrl,
+        'audioUrl': audioUrl,
+        'sourceEntryId': entry.id,
+        'mood': entry.mood,
+        'energy': entry.energy,
+        'suggestion': entry.suggestion,
+        'createdAt': DateTime.now(),
+      });
+    }
+    await batch.commit();
+    return feedRecipients.length;
+  }
+
   Future<void> deleteSharedUpdate(SharedUpdate update) async {
     final sourceEntryId = update.sourceEntryId;
     if (sourceEntryId == null || sourceEntryId.isEmpty) {
@@ -548,15 +677,64 @@ class ConnectivityService {
           id: sourceEntryId,
           createdAt: update.createdAt,
           transcript: update.transcript ?? '',
-          mood: '',
-          energy: '',
+          mood: update.mood ?? '',
+          energy: update.energy ?? '',
           summary: update.body,
-          suggestion: '',
+          suggestion: update.suggestion ?? '',
           safety: '',
           shareCard: ShareCardData(
               title: update.title, body: update.body, footer: update.footer),
         ),
       );
+      return;
+    }
+
+    if (update.type == 'post') {
+      await deletePostEntry(
+        PostEntry(
+          id: sourceEntryId,
+          createdAt: update.createdAt,
+          body: update.body,
+          localImagePath: update.localImagePath,
+          remoteImageUrl: update.imageUrl,
+          audioPath: update.localAudioPath,
+          transcript: update.transcript,
+          mood: update.mood,
+          energy: update.energy,
+          suggestion: update.suggestion,
+        ),
+      );
+    }
+  }
+
+  Future<void> deletePostEntry(PostEntry entry) async {
+    final current = await ensureCurrentUserProfile();
+
+    if (!useFirebase || FirebaseAuth.instance.currentUser == null) {
+      _demoSharedUpdates.removeWhere(
+        (update) =>
+            update.authorUid == current.id &&
+            update.type == 'post' &&
+            (update.sourceEntryId == entry.id ||
+                (update.title == 'Post from ${current.displayName}' &&
+                    update.body == entry.body)),
+      );
+      return;
+    }
+
+    await _deleteSharedUpdateCopies(
+      type: 'post',
+      sourceEntryId: entry.id,
+      fallbackMatches: (data) =>
+          data['title'] == 'Post from ${current.displayName}' &&
+          data['body'] == entry.body,
+    );
+
+    if (entry.hasPhoto) {
+      await _deleteStorageObject('shared_posts/${_user.uid}/${entry.id}.jpg');
+    }
+    if (entry.hasAudio) {
+      await _deleteStorageObject('shared_posts/${_user.uid}/${entry.id}.m4a');
     }
   }
 
@@ -707,6 +885,33 @@ class ConnectivityService {
     final ref = _storage
         .ref()
         .child('shared_voice_journals/${_user.uid}/${entry.id}.m4a');
+    await ref.putFile(file);
+    return ref.getDownloadURL();
+  }
+
+  Future<String?> _resolvePostPhotoUrl(PostEntry entry) async {
+    if (entry.remoteImageUrl != null && entry.remoteImageUrl!.isNotEmpty) {
+      return entry.remoteImageUrl;
+    }
+    if (entry.localImagePath == null || entry.localImagePath!.isEmpty) {
+      return null;
+    }
+    final file = File(entry.localImagePath!);
+    if (!file.existsSync()) return null;
+    final ref =
+        _storage.ref().child('shared_posts/${_user.uid}/${entry.id}.jpg');
+    await ref.putFile(file);
+    return ref.getDownloadURL();
+  }
+
+  Future<String?> _resolvePostAudioUrl(PostEntry entry) async {
+    if (entry.audioPath == null || entry.audioPath!.isEmpty) {
+      return null;
+    }
+    final file = File(entry.audioPath!);
+    if (!file.existsSync()) return null;
+    final ref =
+        _storage.ref().child('shared_posts/${_user.uid}/${entry.id}.m4a');
     await ref.putFile(file);
     return ref.getDownloadURL();
   }
